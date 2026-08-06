@@ -5,6 +5,7 @@ namespace TaskManager_Staj_Project.DTOs.Auth
     public class RegisterRequestDto
     {
         [Required]
+        [MaxLength(100)]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
