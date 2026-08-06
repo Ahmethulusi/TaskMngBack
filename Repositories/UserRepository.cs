@@ -29,5 +29,27 @@ namespace TaskManager_Staj_Project.Repositories
         {
             return _context.Users.AnyAsync(u => u.Email == email);
         }
+
+        public Task<List<User>> GetAllAsync()
+        {
+            return _context.Users.ToListAsync();
+        }
+
+        public Task<User?> GetByIdAsync(int id)
+        {
+            return _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public async Task UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(User user)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }

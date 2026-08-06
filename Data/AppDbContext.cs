@@ -37,8 +37,8 @@ namespace TaskManager_Staj_Project.Data
                 Id = 1,
                 FullName = "Sistem Yöneticisi",
                 Email = "admin@taskmanager.local",
-                // PASSWORD_HASH_PLACEHOLDER — ben dolduracağım ("Admin123!" şifresinin BCrypt hash'i)
-                PasswordHash = "$2a$12$SaEu4o5t1yVB8Ko3jiSPd.vqf71KmA9Ctan2JHy2mVL4jQp/xHYwm",
+                // PASSWORD_HASH_PLACEHOLDER — ben dolduracağım ("Admin1234!" şifresinin BCrypt hash'i)
+                PasswordHash = "$2a$12$t8fu4r4T2x5yE5xJbZjYEOqmJxiAz7iiGMTtBv4I3Fc0Az4fZwMsu",
                 Role = UserRole.Admin,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             });
