@@ -45,5 +45,12 @@ namespace TaskManager_Staj_Project.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [AllowAnonymous]
+        [HttpGet("test")]
+        public IActionResult Test()
+        {
+            return Ok(new { message = "AuthController çalışıyor.", timestamp = DateTime.UtcNow });
+        }
     }
 }
