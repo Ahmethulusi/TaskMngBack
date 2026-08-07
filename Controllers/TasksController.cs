@@ -53,6 +53,14 @@ namespace TaskManager_Staj_Project.Controllers
             return Ok(task);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/assign")]
+        public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)
+        {
+            var task = await _taskService.AssignTask(id, dto.AssignedToUserId);
+            return Ok(task);
+        }
+
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

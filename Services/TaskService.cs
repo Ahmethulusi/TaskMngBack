@@ -10,10 +10,12 @@ namespace TaskManager_Staj_Project.Services
     public class TaskService : ITaskService
     {
         private readonly ITaskRepository _taskRepository;
+        private readonly IUserRepository _userRepository;
 
-        public TaskService(ITaskRepository taskRepository)
+        public TaskService(ITaskRepository taskRepository, IUserRepository userRepository)
         {
             _taskRepository = taskRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<List<TaskDto>> GetAllForUser(int userId, bool isAdmin)
@@ -109,6 +111,28 @@ namespace TaskManager_Staj_Project.Services
             }
 
             await _taskRepository.DeleteAsync(task);
+        }
+
+        public async Task<TaskDto> AssignTask(int taskId, int? assignedToUserId)
+        {
+            var task = await GetTaskOrThrowAsync(taskId);
+
+            if (assignedToUserId.HasValue)
+            {
+                var assignee = await _userRepository.GetByIdAsync(assignedToUserId.Value);
+                if (assignee is null)
+                {
+                    throw new NotFoundException("Atanacak kullanıcı bulunamadı.");
+                }
+            }
+
+            task.AssignedToUserId = assignedToUserId;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _taskRepository.UpdateAsync(task);
+
+            var updated = await GetTaskOrThrowAsync(taskId);
+            return MapToDto(updated);
         }
 
         private async Task<TaskItem> GetTaskOrThrowAsync(int taskId)
