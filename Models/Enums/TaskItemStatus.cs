@@ -1,4 +1,4 @@
-namespace TaskManager_Staj_Project.Models.Enums
+namespace TaskMngBack.Models.Enums
 {
     public enum TaskItemStatus
     {

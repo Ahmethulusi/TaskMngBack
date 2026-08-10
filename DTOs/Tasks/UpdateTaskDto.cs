@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using TaskManager_Staj_Project.Models.Enums;
+using TaskMngBack.Models.Enums;
 
-namespace TaskManager_Staj_Project.DTOs.Tasks
+namespace TaskMngBack.DTOs.Tasks
 {
     public class UpdateTaskDto
     {

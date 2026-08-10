@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.Models;
+using TaskMngBack.Models;
 
-namespace TaskManager_Staj_Project.Repositories.Interfaces
+namespace TaskMngBack.Repositories.Interfaces
 {
     public interface IUserRepository
     {
@@ -10,6 +10,7 @@ namespace TaskManager_Staj_Project.Repositories.Interfaces
 
         Task<List<User>> GetAllAsync();
         Task<User?> GetByIdAsync(int id);
+        Task<List<User>> GetByIdsAsync(List<int> ids);
         Task UpdateAsync(User user);
         Task DeleteAsync(User user);
     }

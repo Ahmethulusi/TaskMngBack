@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TaskMngBack</RootNamespace>
+    <AssemblyName>TaskMngBack</AssemblyName>
     <UserSecretsId>6dd5102a-f15c-48f4-a0bb-bf7b434267a1</UserSecretsId>
   </PropertyGroup>
 

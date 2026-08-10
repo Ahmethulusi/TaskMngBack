@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskManager_Staj_Project.DTOs.Auth;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Auth;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Controllers
+namespace TaskMngBack.Controllers
 {
     [ApiController]
     [Route("api/auth")]

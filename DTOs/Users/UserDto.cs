@@ -1,4 +1,6 @@
-namespace TaskManager_Staj_Project.DTOs.Users
+using TaskMngBack.DTOs.Departments;
+
+namespace TaskMngBack.DTOs.Users
 {
     public class UserDto
     {
@@ -7,5 +9,6 @@ namespace TaskManager_Staj_Project.DTOs.Users
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public List<DepartmentDto> Departments { get; set; } = new();
     }
 }

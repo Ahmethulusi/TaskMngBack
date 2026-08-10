@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskManager_Staj_Project.DTOs.Departments;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Departments;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Controllers
+namespace TaskMngBack.Controllers
 {
     [ApiController]
     [Route("api/departments")]

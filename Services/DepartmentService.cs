@@ -1,18 +1,23 @@
-using TaskManager_Staj_Project.DTOs.Departments;
-using TaskManager_Staj_Project.Exceptions;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Repositories.Interfaces;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Departments;
+using TaskMngBack.DTOs.Users;
+using TaskMngBack.Exceptions;
+using TaskMngBack.Models;
+using TaskMngBack.Repositories.Interfaces;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Services
+namespace TaskMngBack.Services
 {
     public class DepartmentService : IDepartmentService
     {
         private readonly IDepartmentRepository _departmentRepository;
+        private readonly IUserRepository _userRepository;
 
-        public DepartmentService(IDepartmentRepository departmentRepository)
+        public DepartmentService(
+            IDepartmentRepository departmentRepository,
+            IUserRepository userRepository)
         {
             _departmentRepository = departmentRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<List<DepartmentDto>> GetAllAsync()
@@ -29,14 +34,18 @@ namespace TaskManager_Staj_Project.Services
 
         public async Task<DepartmentDto> CreateAsync(CreateDepartmentDto dto)
         {
+            var users = await ResolveUsersAsync(dto.UserIds);
+
             var department = new Department
             {
-                Name = dto.Name
+                Name = dto.Name,
+                Users = users
             };
 
             await _departmentRepository.AddAsync(department);
 
-            return MapToDto(department);
+            var created = await GetDepartmentOrThrowAsync(department.Id);
+            return MapToDto(created);
         }
 
         public async Task<DepartmentDto> UpdateAsync(int id, UpdateDepartmentDto dto)
@@ -44,16 +53,37 @@ namespace TaskManager_Staj_Project.Services
             var department = await GetDepartmentOrThrowAsync(id);
 
             department.Name = dto.Name;
+            department.Users = await ResolveUsersAsync(dto.UserIds);
 
             await _departmentRepository.UpdateAsync(department);
 
-            return MapToDto(department);
+            var updated = await GetDepartmentOrThrowAsync(id);
+            return MapToDto(updated);
         }
 
         public async Task DeleteAsync(int id)
         {
             var department = await GetDepartmentOrThrowAsync(id);
             await _departmentRepository.DeleteAsync(department);
+        }
+
+        private async Task<List<User>> ResolveUsersAsync(List<int> userIds)
+        {
+            var distinctIds = userIds.Distinct().ToList();
+
+            if (distinctIds.Count == 0)
+            {
+                return new List<User>();
+            }
+
+            var users = await _userRepository.GetByIdsAsync(distinctIds);
+
+            if (users.Count != distinctIds.Count)
+            {
+                throw new NotFoundException("Belirtilen kullanıcılardan biri veya birkaçı bulunamadı.");
+            }
+
+            return users;
         }
 
         private async Task<Department> GetDepartmentOrThrowAsync(int id)
@@ -73,7 +103,14 @@ namespace TaskManager_Staj_Project.Services
             return new DepartmentDto
             {
                 Id = department.Id,
-                Name = department.Name
+                Name = department.Name,
+                Users = department.Users
+                    .Select(u => new UserSummaryDto
+                    {
+                        Id = u.Id,
+                        FullName = u.FullName
+                    })
+                    .ToList()
             };
         }
     }

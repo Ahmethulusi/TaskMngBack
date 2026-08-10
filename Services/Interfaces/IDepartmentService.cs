@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.DTOs.Departments;
+using TaskMngBack.DTOs.Departments;
 
-namespace TaskManager_Staj_Project.Services.Interfaces
+namespace TaskMngBack.Services.Interfaces
 {
     public interface IDepartmentService
     {

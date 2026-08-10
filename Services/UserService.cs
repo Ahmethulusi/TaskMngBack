@@ -1,19 +1,27 @@
-using TaskManager_Staj_Project.DTOs.Users;
-using TaskManager_Staj_Project.Exceptions;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Models.Enums;
-using TaskManager_Staj_Project.Repositories.Interfaces;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Departments;
+using TaskMngBack.DTOs.Users;
+using TaskMngBack.Exceptions;
+using TaskMngBack.Models;
+using TaskMngBack.Models.Enums;
+using TaskMngBack.Repositories.Interfaces;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Services
+namespace TaskMngBack.Services
 {
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IDepartmentRepository _departmentRepository;
+        private readonly ITaskRepository _taskRepository;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(
+            IUserRepository userRepository,
+            IDepartmentRepository departmentRepository,
+            ITaskRepository taskRepository)
         {
             _userRepository = userRepository;
+            _departmentRepository = departmentRepository;
+            _taskRepository = taskRepository;
         }
 
         public async Task<List<UserDto>> GetAllAsync()
@@ -36,6 +44,9 @@ namespace TaskManager_Staj_Project.Services
             user.Email = dto.Email;
             user.Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true);
 
+            var departments = await ResolveDepartmentsAsync(dto.DepartmentIds);
+            user.Departments = departments;
+
             await _userRepository.UpdateAsync(user);
 
             return MapToDto(user);
@@ -44,7 +55,33 @@ namespace TaskManager_Staj_Project.Services
         public async Task DeleteAsync(int id)
         {
             var user = await GetUserOrThrowAsync(id);
+
+            if (await _taskRepository.HasTasksForUserAsync(id))
+            {
+                throw new ConflictException(
+                    "Bu kullanıcının oluşturduğu veya kendisine atanmış görevler var. Silmeden önce bu görevleri başka bir kullanıcıya aktarın veya silin.");
+            }
+
             await _userRepository.DeleteAsync(user);
+        }
+
+        private async Task<List<Department>> ResolveDepartmentsAsync(List<int> departmentIds)
+        {
+            var distinctIds = departmentIds.Distinct().ToList();
+
+            if (distinctIds.Count == 0)
+            {
+                return new List<Department>();
+            }
+
+            var departments = await _departmentRepository.GetByIdsAsync(distinctIds);
+
+            if (departments.Count != distinctIds.Count)
+            {
+                throw new NotFoundException("Belirtilen departmanlardan biri veya birkaçı bulunamadı.");
+            }
+
+            return departments;
         }
 
         private async Task<User> GetUserOrThrowAsync(int id)
@@ -67,7 +104,21 @@ namespace TaskManager_Staj_Project.Services
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                Departments = user.Departments
+                    .Select(d => new DepartmentDto
+                    {
+                        Id = d.Id,
+                        Name = d.Name,
+                        Users = d.Users
+                            .Select(u => new UserSummaryDto
+                            {
+                                Id = u.Id,
+                                FullName = u.FullName
+                            })
+                            .ToList()
+                    })
+                    .ToList()
             };
         }
     }

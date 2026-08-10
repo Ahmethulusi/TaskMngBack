@@ -1,4 +1,4 @@
-namespace TaskManager_Staj_Project.DTOs.Auth
+namespace TaskMngBack.DTOs.Auth
 {
     public class AuthResponseDto
     {

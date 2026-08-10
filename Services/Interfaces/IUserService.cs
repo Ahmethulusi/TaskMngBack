@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.DTOs.Users;
+using TaskMngBack.DTOs.Users;
 
-namespace TaskManager_Staj_Project.Services.Interfaces
+namespace TaskMngBack.Services.Interfaces
 {
     public interface IUserService
     {

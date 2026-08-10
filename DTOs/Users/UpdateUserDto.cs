@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using TaskManager_Staj_Project.Models.Enums;
+using TaskMngBack.Models.Enums;
 
-namespace TaskManager_Staj_Project.DTOs.Users
+namespace TaskMngBack.DTOs.Users
 {
     public class UpdateUserDto
     {
@@ -16,5 +16,7 @@ namespace TaskManager_Staj_Project.DTOs.Users
         [Required]
         [EnumDataType(typeof(UserRole))]
         public string Role { get; set; } = string.Empty;
+
+        public List<int> DepartmentIds { get; set; } = new();
     }
 }

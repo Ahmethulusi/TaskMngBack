@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TaskManager_Staj_Project.Migrations
+namespace TaskMngBack.Migrations
 {
     /// <inheritdoc />
     public partial class AdminSeed : Migration

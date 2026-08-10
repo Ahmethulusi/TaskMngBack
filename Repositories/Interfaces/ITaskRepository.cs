@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.Models;
+using TaskMngBack.Models;
 
-namespace TaskManager_Staj_Project.Repositories.Interfaces
+namespace TaskMngBack.Repositories.Interfaces
 {
     public interface ITaskRepository
     {
@@ -10,5 +10,6 @@ namespace TaskManager_Staj_Project.Repositories.Interfaces
         Task AddAsync(TaskItem task);
         Task UpdateAsync(TaskItem task);
         Task DeleteAsync(TaskItem task);
+        Task<bool> HasTasksForUserAsync(int userId);
     }
 }

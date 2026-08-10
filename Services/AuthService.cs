@@ -3,14 +3,14 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using TaskManager_Staj_Project.Configuration;
-using TaskManager_Staj_Project.DTOs.Auth;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Models.Enums;
-using TaskManager_Staj_Project.Repositories.Interfaces;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.Configuration;
+using TaskMngBack.DTOs.Auth;
+using TaskMngBack.Models;
+using TaskMngBack.Models.Enums;
+using TaskMngBack.Repositories.Interfaces;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Services
+namespace TaskMngBack.Services
 {
     public class AuthService : IAuthService
     {

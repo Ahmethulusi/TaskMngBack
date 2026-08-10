@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManager_Staj_Project.Data;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Repositories.Interfaces;
+using TaskMngBack.Data;
+using TaskMngBack.Models;
+using TaskMngBack.Repositories.Interfaces;
 
-namespace TaskManager_Staj_Project.Repositories
+namespace TaskMngBack.Repositories
 {
     public class TaskRepository : ITaskRepository
     {
@@ -22,7 +22,7 @@ namespace TaskManager_Staj_Project.Repositories
         public Task<List<TaskItem>> GetByUserAsync(int userId)
         {
             return IncludeNavigations(_context.Tasks)
-                .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId)
+                .Where(t => t.CreatedByUserId == userId || t.AssignedUsers.Any(u => u.Id == userId))
                 .ToListAsync();
         }
 
@@ -49,12 +49,19 @@ namespace TaskManager_Staj_Project.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public Task<bool> HasTasksForUserAsync(int userId)
+        {
+            return _context.Tasks.AnyAsync(t =>
+                t.CreatedByUserId == userId ||
+                t.AssignedUsers.Any(u => u.Id == userId));
+        }
+
         private static IQueryable<TaskItem> IncludeNavigations(IQueryable<TaskItem> query)
         {
             return query
                 .Include(t => t.Department)
                 .Include(t => t.CreatedByUser)
-                .Include(t => t.AssignedToUser);
+                .Include(t => t.AssignedUsers);
         }
     }
 }

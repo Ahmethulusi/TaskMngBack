@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskManager_Staj_Project.DTOs.Tasks;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Tasks;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Controllers
+namespace TaskMngBack.Controllers
 {
     [ApiController]
     [Route("api/tasks")]
@@ -57,7 +57,7 @@ namespace TaskManager_Staj_Project.Controllers
         [HttpPatch("{id:int}/assign")]
         public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)
         {
-            var task = await _taskService.AssignTask(id, dto.AssignedToUserId);
+            var task = await _taskService.AssignTask(id, dto.AssignedUserIds);
             return Ok(task);
         }
 

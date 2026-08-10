@@ -1,4 +1,4 @@
-namespace TaskManager_Staj_Project.Configuration
+namespace TaskMngBack.Configuration
 {
     public class JwtSettings
     {

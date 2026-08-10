@@ -1,4 +1,4 @@
-namespace TaskManager_Staj_Project.Exceptions
+namespace TaskMngBack.Exceptions
 {
     public class NotFoundException : Exception
     {

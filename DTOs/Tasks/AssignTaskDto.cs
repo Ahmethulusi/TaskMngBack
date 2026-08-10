@@ -1,8 +1,8 @@
-namespace TaskManager_Staj_Project.DTOs.Tasks
+namespace TaskMngBack.DTOs.Tasks
 {
     public class AssignTaskDto
     {
-        // null = atamayı kaldır
-        public int? AssignedToUserId { get; set; }
+        // Gönderilen liste yeni atanan listesinin tamamı (boş = tüm atamaları kaldır)
+        public List<int> AssignedUserIds { get; set; } = new();
     }
 }

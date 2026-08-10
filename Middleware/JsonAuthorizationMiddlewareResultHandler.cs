@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 
-namespace TaskManager_Staj_Project.Middleware
+namespace TaskMngBack.Middleware
 {
     public class JsonAuthorizationMiddlewareResultHandler : IAuthorizationMiddlewareResultHandler
     {

@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using TaskManager_Staj_Project.Configuration;
-using TaskManager_Staj_Project.Data;
-using TaskManager_Staj_Project.Middleware;
-using TaskManager_Staj_Project.Repositories;
-using TaskManager_Staj_Project.Repositories.Interfaces;
-using TaskManager_Staj_Project.Services;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.Configuration;
+using TaskMngBack.Data;
+using TaskMngBack.Middleware;
+using TaskMngBack.Repositories;
+using TaskMngBack.Repositories.Interfaces;
+using TaskMngBack.Services;
+using TaskMngBack.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

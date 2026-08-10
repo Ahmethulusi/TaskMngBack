@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManager_Staj_Project.Data;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Repositories.Interfaces;
+using TaskMngBack.Data;
+using TaskMngBack.Models;
+using TaskMngBack.Repositories.Interfaces;
 
-namespace TaskManager_Staj_Project.Repositories
+namespace TaskMngBack.Repositories
 {
     public class UserRepository : IUserRepository
     {
@@ -32,12 +32,23 @@ namespace TaskManager_Staj_Project.Repositories
 
         public Task<List<User>> GetAllAsync()
         {
-            return _context.Users.ToListAsync();
+            return _context.Users
+                .Include(u => u.Departments)
+                .ToListAsync();
         }
 
         public Task<User?> GetByIdAsync(int id)
         {
-            return _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            return _context.Users
+                .Include(u => u.Departments)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public Task<List<User>> GetByIdsAsync(List<int> ids)
+        {
+            return _context.Users
+                .Where(u => ids.Contains(u.Id))
+                .ToListAsync();
         }
 
         public async Task UpdateAsync(User user)

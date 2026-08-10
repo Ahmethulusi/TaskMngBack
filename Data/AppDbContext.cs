@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Models.Enums;
+using TaskMngBack.Models;
+using TaskMngBack.Models.Enums;
 
-namespace TaskManager_Staj_Project.Data
+namespace TaskMngBack.Data
 {
     public class AppDbContext : DbContext
     {
@@ -27,10 +27,14 @@ namespace TaskManager_Staj_Project.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TaskItem>()
-                .HasOne(t => t.AssignedToUser)
+                .HasMany(t => t.AssignedUsers)
                 .WithMany(u => u.AssignedTasks)
-                .HasForeignKey(t => t.AssignedToUserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .UsingEntity(j => j.ToTable("TaskAssignees"));
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Departments)
+                .WithMany(d => d.Users)
+                .UsingEntity(j => j.ToTable("UserDepartments"));
 
             modelBuilder.Entity<User>().HasData(new User
             {

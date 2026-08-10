@@ -1,4 +1,4 @@
-namespace TaskManager_Staj_Project.Exceptions
+namespace TaskMngBack.Exceptions
 {
     // İsim kasıtlı olarak "UnauthorizedAccessException" değil — .NET'in kendi
     // tipiyle karışmaması için.

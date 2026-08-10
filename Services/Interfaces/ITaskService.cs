@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.DTOs.Tasks;
+using TaskMngBack.DTOs.Tasks;
 
-namespace TaskManager_Staj_Project.Services.Interfaces
+namespace TaskMngBack.Services.Interfaces
 {
     public interface ITaskService
     {
@@ -10,6 +10,6 @@ namespace TaskManager_Staj_Project.Services.Interfaces
         Task<TaskDto> Update(int taskId, UpdateTaskDto dto, int userId, bool isAdmin);
         Task<TaskDto> UpdateStatus(int taskId, UpdateTaskStatusDto dto, int userId, bool isAdmin);
         Task Delete(int taskId, int userId, bool isAdmin);
-        Task<TaskDto> AssignTask(int taskId, int? assignedToUserId);
+        Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds);
     }
 }

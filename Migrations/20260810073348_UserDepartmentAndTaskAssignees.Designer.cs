@@ -12,8 +12,8 @@ using TaskMngBack.Data;
 namespace TaskMngBack.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260805133311_AdminSeed")]
-    partial class AdminSeed
+    [Migration("20260810073348_UserDepartmentAndTaskAssignees")]
+    partial class UserDepartmentAndTaskAssignees
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,36 @@ namespace TaskMngBack.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("DepartmentUser", b =>
+                {
+                    b.Property<int>("DepartmentsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DepartmentsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("UserDepartments", (string)null);
+                });
+
+            modelBuilder.Entity("TaskItemUser", b =>
+                {
+                    b.Property<int>("AssignedTasksId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AssignedUsersId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AssignedTasksId", "AssignedUsersId");
+
+                    b.HasIndex("AssignedUsersId");
+
+                    b.ToTable("TaskAssignees", (string)null);
+                });
 
             modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
@@ -49,9 +79,6 @@ namespace TaskMngBack.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AssignedToUserId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -79,8 +106,6 @@ namespace TaskMngBack.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AssignedToUserId");
 
                     b.HasIndex("CreatedByUserId");
 
@@ -129,18 +154,43 @@ namespace TaskMngBack.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@taskmanager.local",
                             FullName = "Sistem Yöneticisi",
-                            PasswordHash = "$2a$12$SaEu4o5t1yVB8Ko3jiSPd.vqf71KmA9Ctan2JHy2mVL4jQp/xHYwm",
+                            PasswordHash = "$2a$12$t8fu4r4T2x5yE5xJbZjYEOqmJxiAz7iiGMTtBv4I3Fc0Az4fZwMsu",
                             Role = 0
                         });
                 });
 
+            modelBuilder.Entity("DepartmentUser", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskMngBack.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TaskItemUser", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.TaskItem", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedTasksId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskMngBack.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedUsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
-                    b.HasOne("TaskMngBack.Models.User", "AssignedToUser")
-                        .WithMany("AssignedTasks")
-                        .HasForeignKey("AssignedToUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("TaskMngBack.Models.User", "CreatedByUser")
                         .WithMany("CreatedTasks")
                         .HasForeignKey("CreatedByUserId")
@@ -150,8 +200,6 @@ namespace TaskMngBack.Migrations
                     b.HasOne("TaskMngBack.Models.Department", "Department")
                         .WithMany("Tasks")
                         .HasForeignKey("DepartmentId");
-
-                    b.Navigation("AssignedToUser");
 
                     b.Navigation("CreatedByUser");
 
@@ -165,8 +213,6 @@ namespace TaskMngBack.Migrations
 
             modelBuilder.Entity("TaskMngBack.Models.User", b =>
                 {
-                    b.Navigation("AssignedTasks");
-
                     b.Navigation("CreatedTasks");
                 });
 #pragma warning restore 612, 618

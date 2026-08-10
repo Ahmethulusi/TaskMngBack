@@ -1,4 +1,6 @@
-namespace TaskManager_Staj_Project.DTOs.Tasks
+using TaskMngBack.DTOs.Users;
+
+namespace TaskMngBack.DTOs.Tasks
 {
     public class TaskDto
     {
@@ -16,7 +18,6 @@ namespace TaskManager_Staj_Project.DTOs.Tasks
         public int CreatedByUserId { get; set; }
         public string CreatedByUserName { get; set; } = string.Empty;
 
-        public int? AssignedToUserId { get; set; }
-        public string? AssignedToUserName { get; set; }
+        public List<UserSummaryDto> AssignedUsers { get; set; } = new();
     }
 }

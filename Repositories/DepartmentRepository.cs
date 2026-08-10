@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManager_Staj_Project.Data;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Repositories.Interfaces;
+using TaskMngBack.Data;
+using TaskMngBack.Models;
+using TaskMngBack.Repositories.Interfaces;
 
-namespace TaskManager_Staj_Project.Repositories
+namespace TaskMngBack.Repositories
 {
     public class DepartmentRepository : IDepartmentRepository
     {
@@ -16,12 +16,23 @@ namespace TaskManager_Staj_Project.Repositories
 
         public Task<List<Department>> GetAllAsync()
         {
-            return _context.Departments.ToListAsync();
+            return _context.Departments
+                .Include(d => d.Users)
+                .ToListAsync();
         }
 
         public Task<Department?> GetByIdAsync(int id)
         {
-            return _context.Departments.FirstOrDefaultAsync(d => d.Id == id);
+            return _context.Departments
+                .Include(d => d.Users)
+                .FirstOrDefaultAsync(d => d.Id == id);
+        }
+
+        public Task<List<Department>> GetByIdsAsync(List<int> ids)
+        {
+            return _context.Departments
+                .Where(d => ids.Contains(d.Id))
+                .ToListAsync();
         }
 
         public async Task AddAsync(Department department)
@@ -40,7 +51,6 @@ namespace TaskManager_Staj_Project.Repositories
         {
             _context.Departments.Remove(department);
             await _context.SaveChangesAsync();
-
         }
     }
 }

@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using TaskManager_Staj_Project.Data;
+using TaskMngBack.Data;
 
 #nullable disable
 
-namespace TaskManager_Staj_Project.Migrations
+namespace TaskMngBack.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260805120921_InitialCreate")]
@@ -25,7 +25,7 @@ namespace TaskManager_Staj_Project.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.Department", b =>
+            modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -42,7 +42,7 @@ namespace TaskManager_Staj_Project.Migrations
                     b.ToTable("Departments");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.TaskItem", b =>
+            modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -89,7 +89,7 @@ namespace TaskManager_Staj_Project.Migrations
                     b.ToTable("Tasks");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.User", b =>
+            modelBuilder.Entity("TaskMngBack.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -123,20 +123,20 @@ namespace TaskManager_Staj_Project.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.TaskItem", b =>
+            modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
-                    b.HasOne("TaskManager_Staj_Project.Models.User", "AssignedToUser")
+                    b.HasOne("TaskMngBack.Models.User", "AssignedToUser")
                         .WithMany("AssignedTasks")
                         .HasForeignKey("AssignedToUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("TaskManager_Staj_Project.Models.User", "CreatedByUser")
+                    b.HasOne("TaskMngBack.Models.User", "CreatedByUser")
                         .WithMany("CreatedTasks")
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TaskManager_Staj_Project.Models.Department", "Department")
+                    b.HasOne("TaskMngBack.Models.Department", "Department")
                         .WithMany("Tasks")
                         .HasForeignKey("DepartmentId");
 
@@ -147,12 +147,12 @@ namespace TaskManager_Staj_Project.Migrations
                     b.Navigation("Department");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.Department", b =>
+            modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
                     b.Navigation("Tasks");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.User", b =>
+            modelBuilder.Entity("TaskMngBack.Models.User", b =>
                 {
                     b.Navigation("AssignedTasks");
 

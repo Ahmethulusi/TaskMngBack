@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.Models.Enums;
+using TaskMngBack.Models.Enums;
 
-namespace TaskManager_Staj_Project.Models
+namespace TaskMngBack.Models
 {
     public class TaskItem
     {
@@ -18,7 +18,6 @@ namespace TaskManager_Staj_Project.Models
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; } = null!;
 
-        public int? AssignedToUserId { get; set; }
-        public User? AssignedToUser { get; set; }
+        public ICollection<User> AssignedUsers { get; set; } = new List<User>();
     }
 }

@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using TaskManager_Staj_Project.Data;
+using TaskMngBack.Data;
 
 #nullable disable
 
-namespace TaskManager_Staj_Project.Migrations
+namespace TaskMngBack.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -22,7 +22,37 @@ namespace TaskManager_Staj_Project.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.Department", b =>
+            modelBuilder.Entity("DepartmentUser", b =>
+                {
+                    b.Property<int>("DepartmentsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DepartmentsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("UserDepartments", (string)null);
+                });
+
+            modelBuilder.Entity("TaskItemUser", b =>
+                {
+                    b.Property<int>("AssignedTasksId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AssignedUsersId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AssignedTasksId", "AssignedUsersId");
+
+                    b.HasIndex("AssignedUsersId");
+
+                    b.ToTable("TaskAssignees", (string)null);
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -39,16 +69,13 @@ namespace TaskManager_Staj_Project.Migrations
                     b.ToTable("Departments");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.TaskItem", b =>
+            modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AssignedToUserId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -77,8 +104,6 @@ namespace TaskManager_Staj_Project.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedToUserId");
-
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("DepartmentId");
@@ -86,7 +111,7 @@ namespace TaskManager_Staj_Project.Migrations
                     b.ToTable("Tasks");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.User", b =>
+            modelBuilder.Entity("TaskMngBack.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -126,44 +151,65 @@ namespace TaskManager_Staj_Project.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@taskmanager.local",
                             FullName = "Sistem Yöneticisi",
-                            PasswordHash = "$2a$12$SaEu4o5t1yVB8Ko3jiSPd.vqf71KmA9Ctan2JHy2mVL4jQp/xHYwm",
+                            PasswordHash = "$2a$12$t8fu4r4T2x5yE5xJbZjYEOqmJxiAz7iiGMTtBv4I3Fc0Az4fZwMsu",
                             Role = 0
                         });
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.TaskItem", b =>
+            modelBuilder.Entity("DepartmentUser", b =>
                 {
-                    b.HasOne("TaskManager_Staj_Project.Models.User", "AssignedToUser")
-                        .WithMany("AssignedTasks")
-                        .HasForeignKey("AssignedToUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("TaskMngBack.Models.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("TaskManager_Staj_Project.Models.User", "CreatedByUser")
+                    b.HasOne("TaskMngBack.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TaskItemUser", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.TaskItem", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedTasksId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskMngBack.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedUsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.User", "CreatedByUser")
                         .WithMany("CreatedTasks")
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TaskManager_Staj_Project.Models.Department", "Department")
+                    b.HasOne("TaskMngBack.Models.Department", "Department")
                         .WithMany("Tasks")
                         .HasForeignKey("DepartmentId");
-
-                    b.Navigation("AssignedToUser");
 
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Department");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.Department", b =>
+            modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
                     b.Navigation("Tasks");
                 });
 
-            modelBuilder.Entity("TaskManager_Staj_Project.Models.User", b =>
+            modelBuilder.Entity("TaskMngBack.Models.User", b =>
                 {
-                    b.Navigation("AssignedTasks");
-
                     b.Navigation("CreatedTasks");
                 });
 #pragma warning restore 612, 618

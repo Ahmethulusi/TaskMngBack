@@ -1,6 +1,6 @@
-using TaskManager_Staj_Project.DTOs.Auth;
+using TaskMngBack.DTOs.Auth;
 
-namespace TaskManager_Staj_Project.Services.Interfaces
+namespace TaskMngBack.Services.Interfaces
 {
     public interface IAuthService
     {

@@ -1,11 +1,12 @@
-using TaskManager_Staj_Project.DTOs.Tasks;
-using TaskManager_Staj_Project.Exceptions;
-using TaskManager_Staj_Project.Models;
-using TaskManager_Staj_Project.Models.Enums;
-using TaskManager_Staj_Project.Repositories.Interfaces;
-using TaskManager_Staj_Project.Services.Interfaces;
+using TaskMngBack.DTOs.Tasks;
+using TaskMngBack.DTOs.Users;
+using TaskMngBack.Exceptions;
+using TaskMngBack.Models;
+using TaskMngBack.Models.Enums;
+using TaskMngBack.Repositories.Interfaces;
+using TaskMngBack.Services.Interfaces;
 
-namespace TaskManager_Staj_Project.Services
+namespace TaskMngBack.Services
 {
     public class TaskService : ITaskService
     {
@@ -31,7 +32,9 @@ namespace TaskManager_Staj_Project.Services
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin && task.CreatedByUserId != userId && task.AssignedToUserId != userId)
+            if (!isAdmin &&
+                task.CreatedByUserId != userId &&
+                !task.AssignedUsers.Any(u => u.Id == userId))
             {
                 throw new ForbiddenAccessException("Bu görevi görüntüleme yetkiniz yok.");
             }
@@ -41,10 +44,7 @@ namespace TaskManager_Staj_Project.Services
 
         public async Task<TaskDto> Create(CreateTaskDto dto, int userId, bool isAdmin)
         {
-            if (!isAdmin && dto.AssignedToUserId.HasValue && dto.AssignedToUserId.Value != userId)
-            {
-                throw new ForbiddenAccessException("Görevi sadece kendinize atayabilir ya da boş bırakabilirsiniz.");
-            }
+            var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, isAdmin);
 
             var task = new TaskItem
             {
@@ -54,7 +54,7 @@ namespace TaskManager_Staj_Project.Services
                 Status = TaskItemStatus.Bekliyor,
                 DepartmentId = dto.DepartmentId,
                 CreatedByUserId = userId,
-                AssignedToUserId = dto.AssignedToUserId,
+                AssignedUsers = assignedUsers,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -88,7 +88,9 @@ namespace TaskManager_Staj_Project.Services
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin && task.CreatedByUserId != userId && task.AssignedToUserId != userId)
+            if (!isAdmin &&
+                task.CreatedByUserId != userId &&
+                !task.AssignedUsers.Any(u => u.Id == userId))
             {
                 throw new ForbiddenAccessException("Bu görevin durumunu güncelleme yetkiniz yok.");
             }
@@ -113,26 +115,47 @@ namespace TaskManager_Staj_Project.Services
             await _taskRepository.DeleteAsync(task);
         }
 
-        public async Task<TaskDto> AssignTask(int taskId, int? assignedToUserId)
+        public async Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds)
         {
             var task = await GetTaskOrThrowAsync(taskId);
+            var assignedUsers = await ResolveAssignedUsersAsync(assignedUserIds, userId: 0, isAdmin: true);
 
-            if (assignedToUserId.HasValue)
-            {
-                var assignee = await _userRepository.GetByIdAsync(assignedToUserId.Value);
-                if (assignee is null)
-                {
-                    throw new NotFoundException("Atanacak kullanıcı bulunamadı.");
-                }
-            }
-
-            task.AssignedToUserId = assignedToUserId;
+            task.AssignedUsers = assignedUsers;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
 
             var updated = await GetTaskOrThrowAsync(taskId);
             return MapToDto(updated);
+        }
+
+        private async Task<List<User>> ResolveAssignedUsersAsync(List<int> assignedUserIds, int userId, bool isAdmin)
+        {
+            var distinctIds = assignedUserIds.Distinct().ToList();
+
+            if (!isAdmin)
+            {
+                if (distinctIds.Count > 1 ||
+                    (distinctIds.Count == 1 && distinctIds[0] != userId))
+                {
+                    throw new ForbiddenAccessException(
+                        "Görevi sadece kendinize atayabilir ya da boş bırakabilirsiniz.");
+                }
+            }
+
+            if (distinctIds.Count == 0)
+            {
+                return new List<User>();
+            }
+
+            var users = await _userRepository.GetByIdsAsync(distinctIds);
+
+            if (users.Count != distinctIds.Count)
+            {
+                throw new NotFoundException("Atanacak kullanıcılardan biri veya birkaçı bulunamadı.");
+            }
+
+            return users;
         }
 
         private async Task<TaskItem> GetTaskOrThrowAsync(int taskId)
@@ -162,8 +185,13 @@ namespace TaskManager_Staj_Project.Services
                 DepartmentName = task.Department?.Name,
                 CreatedByUserId = task.CreatedByUserId,
                 CreatedByUserName = task.CreatedByUser?.FullName ?? string.Empty,
-                AssignedToUserId = task.AssignedToUserId,
-                AssignedToUserName = task.AssignedToUser?.FullName
+                AssignedUsers = task.AssignedUsers
+                    .Select(u => new UserSummaryDto
+                    {
+                        Id = u.Id,
+                        FullName = u.FullName
+                    })
+                    .ToList()
             };
         }
     }

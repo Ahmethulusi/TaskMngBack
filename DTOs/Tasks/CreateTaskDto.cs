@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using TaskManager_Staj_Project.Models.Enums;
+using TaskMngBack.Models.Enums;
 
-namespace TaskManager_Staj_Project.DTOs.Tasks
+namespace TaskMngBack.DTOs.Tasks
 {
     public class CreateTaskDto
     {
@@ -18,6 +18,6 @@ namespace TaskManager_Staj_Project.DTOs.Tasks
 
         public int? DepartmentId { get; set; }
 
-        public int? AssignedToUserId { get; set; }
+        public List<int> AssignedUserIds { get; set; } = new();
     }
 }

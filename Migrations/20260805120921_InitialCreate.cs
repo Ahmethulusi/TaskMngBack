@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace TaskManager_Staj_Project.Migrations
+namespace TaskMngBack.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

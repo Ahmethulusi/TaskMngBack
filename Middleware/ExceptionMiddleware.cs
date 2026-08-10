@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text.Json;
-using TaskManager_Staj_Project.Exceptions;
+using TaskMngBack.Exceptions;
 
-namespace TaskManager_Staj_Project.Middleware
+namespace TaskMngBack.Middleware
 {
     public class ExceptionMiddleware
     {
@@ -28,6 +28,10 @@ namespace TaskManager_Staj_Project.Middleware
             catch (ForbiddenAccessException ex)
             {
                 await WriteResponseAsync(context, HttpStatusCode.Forbidden, ex.Message);
+            }
+            catch (ConflictException ex)
+            {
+                await WriteResponseAsync(context, HttpStatusCode.Conflict, ex.Message);
             }
             catch (Exception ex)
             {
