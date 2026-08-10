@@ -37,6 +37,21 @@ namespace TaskMngBack.Migrations
                     b.ToTable("UserDepartments", (string)null);
                 });
 
+            modelBuilder.Entity("LabelTaskItem", b =>
+                {
+                    b.Property<Guid>("LabelsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TasksId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LabelsId", "TasksId");
+
+                    b.HasIndex("TasksId");
+
+                    b.ToTable("TaskLabels", (string)null);
+                });
+
             modelBuilder.Entity("TaskItemUser", b =>
                 {
                     b.Property<int>("AssignedTasksId")
@@ -60,13 +75,78 @@ namespace TaskMngBack.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ManagerId");
+
                     b.ToTable("Departments");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.Label", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Labels");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.Project", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.ProjectMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProjectMembers");
                 });
 
             modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
@@ -89,11 +169,17 @@ namespace TaskMngBack.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -108,7 +194,62 @@ namespace TaskMngBack.Migrations
 
                     b.HasIndex("DepartmentId");
 
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("StatusId");
+
                     b.ToTable("Tasks");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.TaskStatusDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ColorKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TaskStatuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            ColorKey = "yellow",
+                            DisplayOrder = 1,
+                            IsDefault = true,
+                            Name = "Bekliyor"
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            ColorKey = "orange",
+                            DisplayOrder = 2,
+                            IsDefault = false,
+                            Name = "Devam Ediyor"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            ColorKey = "green",
+                            DisplayOrder = 3,
+                            IsDefault = false,
+                            Name = "Tamamlandı"
+                        });
                 });
 
             modelBuilder.Entity("TaskMngBack.Models.User", b =>
@@ -129,6 +270,9 @@ namespace TaskMngBack.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -151,6 +295,7 @@ namespace TaskMngBack.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@taskmanager.local",
                             FullName = "Sistem Yöneticisi",
+                            MustChangePassword = false,
                             PasswordHash = "$2a$12$t8fu4r4T2x5yE5xJbZjYEOqmJxiAz7iiGMTtBv4I3Fc0Az4fZwMsu",
                             Role = 0
                         });
@@ -171,6 +316,21 @@ namespace TaskMngBack.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("LabelTaskItem", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.Label", null)
+                        .WithMany()
+                        .HasForeignKey("LabelsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskMngBack.Models.TaskItem", null)
+                        .WithMany()
+                        .HasForeignKey("TasksId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TaskItemUser", b =>
                 {
                     b.HasOne("TaskMngBack.Models.TaskItem", null)
@@ -186,6 +346,35 @@ namespace TaskMngBack.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TaskMngBack.Models.Department", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Manager");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.ProjectMember", b =>
+                {
+                    b.HasOne("TaskMngBack.Models.Project", "Project")
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskMngBack.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
                     b.HasOne("TaskMngBack.Models.User", "CreatedByUser")
@@ -198,13 +387,34 @@ namespace TaskMngBack.Migrations
                         .WithMany("Tasks")
                         .HasForeignKey("DepartmentId");
 
+                    b.HasOne("TaskMngBack.Models.Project", "Project")
+                        .WithMany("Tasks")
+                        .HasForeignKey("ProjectId");
+
+                    b.HasOne("TaskMngBack.Models.TaskStatusDefinition", "StatusDefinition")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Department");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("StatusDefinition");
                 });
 
             modelBuilder.Entity("TaskMngBack.Models.Department", b =>
                 {
+                    b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("TaskMngBack.Models.Project", b =>
+                {
+                    b.Navigation("Members");
+
                     b.Navigation("Tasks");
                 });
 

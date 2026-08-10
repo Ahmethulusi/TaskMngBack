@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskMngBack.Configuration;
 using TaskMngBack.DTOs.Auth;
+using TaskMngBack.Exceptions;
 using TaskMngBack.Models;
 using TaskMngBack.Models.Enums;
 using TaskMngBack.Repositories.Interfaces;
@@ -56,6 +57,26 @@ namespace TaskMngBack.Services
             return BuildAuthResponse(user);
         }
 
+        public async Task ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user is null)
+            {
+                throw new NotFoundException($"Id'si {userId} olan kullanıcı bulunamadı.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            {
+                throw new BadRequestException("Mevcut şifre yanlış.");
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.MustChangePassword = false;
+
+            await _userRepository.UpdateAsync(user);
+        }
+
         private AuthResponseDto BuildAuthResponse(User user)
         {
             return new AuthResponseDto
@@ -63,7 +84,8 @@ namespace TaskMngBack.Services
                 Token = GenerateToken(user),
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role.ToString()
+                Role = user.Role.ToString(),
+                MustChangePassword = user.MustChangePassword
             };
         }
 

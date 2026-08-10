@@ -53,6 +53,13 @@ namespace TaskMngBack.Controllers
             return Ok(task);
         }
 
+        [HttpPatch("{id:int}/labels")]
+        public async Task<ActionResult<TaskDto>> UpdateLabels(int id, UpdateTaskLabelsDto dto)
+        {
+            var task = await _taskService.UpdateLabels(id, dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            return Ok(task);
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id:int}/assign")]
         public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)

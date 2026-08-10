@@ -36,6 +36,32 @@ namespace TaskMngBack.Services
             return MapToDto(user);
         }
 
+        public async Task<UserDto> CreateAsync(CreateUserDto dto)
+        {
+            if (await _userRepository.EmailExistsAsync(dto.Email))
+            {
+                throw new ConflictException("Bu email adresi zaten kayıtlı.");
+            }
+
+            var departments = await ResolveDepartmentsAsync(dto.DepartmentIds);
+
+            var user = new User
+            {
+                FullName = dto.FullName,
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true),
+                MustChangePassword = true,
+                CreatedAt = DateTime.UtcNow,
+                Departments = departments
+            };
+
+            await _userRepository.AddAsync(user);
+
+            var created = await GetUserOrThrowAsync(user.Id);
+            return MapToDto(created);
+        }
+
         public async Task<UserDto> UpdateAsync(int id, UpdateUserDto dto)
         {
             var user = await GetUserOrThrowAsync(id);

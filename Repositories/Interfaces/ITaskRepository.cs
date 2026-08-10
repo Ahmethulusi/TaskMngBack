@@ -11,5 +11,6 @@ namespace TaskMngBack.Repositories.Interfaces
         Task UpdateAsync(TaskItem task);
         Task DeleteAsync(TaskItem task);
         Task<bool> HasTasksForUserAsync(int userId);
+        Task<bool> HasTasksForStatusAsync(Guid statusId);
     }
 }

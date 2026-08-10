@@ -33,6 +33,10 @@ namespace TaskMngBack.Middleware
             {
                 await WriteResponseAsync(context, HttpStatusCode.Conflict, ex.Message);
             }
+            catch (BadRequestException ex)
+            {
+                await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Beklenmeyen bir hata oluştu.");

@@ -6,5 +6,6 @@ namespace TaskMngBack.Services.Interfaces
     {
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto);
         Task<AuthResponseDto> LoginAsync(LoginRequestDto dto);
+        Task ChangePasswordAsync(int userId, ChangePasswordDto dto);
     }
 }

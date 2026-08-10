@@ -18,6 +18,7 @@ namespace TaskMngBack.Repositories
         {
             return _context.Departments
                 .Include(d => d.Users)
+                .Include(d => d.Manager)
                 .ToListAsync();
         }
 
@@ -25,6 +26,7 @@ namespace TaskMngBack.Repositories
         {
             return _context.Departments
                 .Include(d => d.Users)
+                .Include(d => d.Manager)
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 

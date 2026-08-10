@@ -10,6 +10,7 @@ namespace TaskMngBack.Models
         public string PasswordHash { get; set; } = string.Empty;
         public UserRole Role { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool MustChangePassword { get; set; } = false;
 
         public ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
         public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();

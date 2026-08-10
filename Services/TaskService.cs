@@ -1,3 +1,4 @@
+using TaskMngBack.DTOs.Labels;
 using TaskMngBack.DTOs.Tasks;
 using TaskMngBack.DTOs.Users;
 using TaskMngBack.Exceptions;
@@ -12,11 +13,19 @@ namespace TaskMngBack.Services
     {
         private readonly ITaskRepository _taskRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ITaskStatusRepository _taskStatusRepository;
+        private readonly ILabelRepository _labelRepository;
 
-        public TaskService(ITaskRepository taskRepository, IUserRepository userRepository)
+        public TaskService(
+            ITaskRepository taskRepository,
+            IUserRepository userRepository,
+            ITaskStatusRepository taskStatusRepository,
+            ILabelRepository labelRepository)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
+            _taskStatusRepository = taskStatusRepository;
+            _labelRepository = labelRepository;
         }
 
         public async Task<List<TaskDto>> GetAllForUser(int userId, bool isAdmin)
@@ -46,13 +55,21 @@ namespace TaskMngBack.Services
         {
             var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, isAdmin);
 
+            var defaultStatus = await _taskStatusRepository.GetDefaultAsync();
+            if (defaultStatus is null)
+            {
+                throw new InvalidOperationException("Varsayılan görev durumu bulunamadı. Lütfen sistem yöneticisine başvurun.");
+            }
+
             var task = new TaskItem
             {
                 Title = dto.Title,
                 Description = dto.Description,
                 Priority = Enum.Parse<TaskPriority>(dto.Priority, ignoreCase: true),
-                Status = TaskItemStatus.Bekliyor,
+                StatusId = defaultStatus.Id,
+                DueDate = dto.DueDate,
                 DepartmentId = dto.DepartmentId,
+                ProjectId = dto.ProjectId,
                 CreatedByUserId = userId,
                 AssignedUsers = assignedUsers,
                 CreatedAt = DateTime.UtcNow
@@ -76,7 +93,9 @@ namespace TaskMngBack.Services
             task.Title = dto.Title;
             task.Description = dto.Description;
             task.Priority = Enum.Parse<TaskPriority>(dto.Priority, ignoreCase: true);
+            task.DueDate = dto.DueDate;
             task.DepartmentId = dto.DepartmentId;
+            task.ProjectId = dto.ProjectId;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
@@ -95,12 +114,40 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevin durumunu güncelleme yetkiniz yok.");
             }
 
-            task.Status = Enum.Parse<TaskItemStatus>(dto.Status, ignoreCase: true);
+            var status = await _taskStatusRepository.GetByIdAsync(dto.StatusId);
+            if (status is null)
+            {
+                throw new NotFoundException($"Id'si {dto.StatusId} olan durum bulunamadı.");
+            }
+
+            task.StatusId = dto.StatusId;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
 
             return MapToDto(task);
+        }
+
+        public async Task<TaskDto> UpdateLabels(int taskId, UpdateTaskLabelsDto dto, int userId, bool isAdmin)
+        {
+            var task = await GetTaskOrThrowAsync(taskId);
+
+            if (!isAdmin &&
+                task.CreatedByUserId != userId &&
+                !task.AssignedUsers.Any(u => u.Id == userId))
+            {
+                throw new ForbiddenAccessException("Bu görevin etiketlerini güncelleme yetkiniz yok.");
+            }
+
+            var labels = await ResolveLabelsAsync(dto.LabelIds);
+
+            task.Labels = labels;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _taskRepository.UpdateAsync(task);
+
+            var updated = await GetTaskOrThrowAsync(taskId);
+            return MapToDto(updated);
         }
 
         public async Task Delete(int taskId, int userId, bool isAdmin)
@@ -158,6 +205,25 @@ namespace TaskMngBack.Services
             return users;
         }
 
+        private async Task<List<Label>> ResolveLabelsAsync(List<Guid> labelIds)
+        {
+            var distinctIds = labelIds.Distinct().ToList();
+
+            if (distinctIds.Count == 0)
+            {
+                return new List<Label>();
+            }
+
+            var labels = await _labelRepository.GetByIdsAsync(distinctIds);
+
+            if (labels.Count != distinctIds.Count)
+            {
+                throw new NotFoundException("Belirtilen etiketlerden biri veya birkaçı bulunamadı.");
+            }
+
+            return labels;
+        }
+
         private async Task<TaskItem> GetTaskOrThrowAsync(int taskId)
         {
             var task = await _taskRepository.GetByIdAsync(taskId);
@@ -177,12 +243,17 @@ namespace TaskMngBack.Services
                 Id = task.Id,
                 Title = task.Title,
                 Description = task.Description,
-                Status = task.Status.ToString(),
+                StatusId = task.StatusId,
+                StatusName = task.StatusDefinition?.Name ?? string.Empty,
+                StatusColorKey = task.StatusDefinition?.ColorKey ?? string.Empty,
                 Priority = task.Priority.ToString(),
                 CreatedAt = task.CreatedAt,
                 UpdatedAt = task.UpdatedAt,
+                DueDate = task.DueDate,
                 DepartmentId = task.DepartmentId,
                 DepartmentName = task.Department?.Name,
+                ProjectId = task.ProjectId,
+                ProjectName = task.Project?.Name,
                 CreatedByUserId = task.CreatedByUserId,
                 CreatedByUserName = task.CreatedByUser?.FullName ?? string.Empty,
                 AssignedUsers = task.AssignedUsers
@@ -190,6 +261,13 @@ namespace TaskMngBack.Services
                     {
                         Id = u.Id,
                         FullName = u.FullName
+                    })
+                    .ToList(),
+                Labels = task.Labels
+                    .Select(l => new LabelDto
+                    {
+                        Id = l.Id,
+                        Name = l.Name
                     })
                     .ToList()
             };

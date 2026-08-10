@@ -36,9 +36,19 @@ namespace TaskMngBack.Services
         {
             var users = await ResolveUsersAsync(dto.UserIds);
 
+            if (dto.ManagerId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(dto.ManagerId.Value);
+                if (manager is null)
+                {
+                    throw new NotFoundException("Belirtilen yönetici bulunamadı.");
+                }
+            }
+
             var department = new Department
             {
                 Name = dto.Name,
+                ManagerId = dto.ManagerId,
                 Users = users
             };
 
@@ -52,7 +62,17 @@ namespace TaskMngBack.Services
         {
             var department = await GetDepartmentOrThrowAsync(id);
 
+            if (dto.ManagerId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(dto.ManagerId.Value);
+                if (manager is null)
+                {
+                    throw new NotFoundException("Belirtilen yönetici bulunamadı.");
+                }
+            }
+
             department.Name = dto.Name;
+            department.ManagerId = dto.ManagerId;
             department.Users = await ResolveUsersAsync(dto.UserIds);
 
             await _departmentRepository.UpdateAsync(department);
@@ -104,6 +124,8 @@ namespace TaskMngBack.Services
             {
                 Id = department.Id,
                 Name = department.Name,
+                ManagerId = department.ManagerId,
+                ManagerName = department.Manager?.FullName,
                 Users = department.Users
                     .Select(u => new UserSummaryDto
                     {

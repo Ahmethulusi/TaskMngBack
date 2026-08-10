@@ -16,7 +16,11 @@ namespace TaskMngBack.DTOs.Tasks
         [EnumDataType(typeof(TaskPriority))]
         public string Priority { get; set; } = string.Empty;
 
+        public DateTime? DueDate { get; set; }
+
         public int? DepartmentId { get; set; }
+
+        public Guid? ProjectId { get; set; }
 
         public List<int> AssignedUserIds { get; set; } = new();
     }

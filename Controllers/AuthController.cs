@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskMngBack.DTOs.Auth;
@@ -44,6 +45,20 @@ namespace TaskMngBack.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Geçersiz kullanıcı kimliği." });
+            }
+
+            await _authService.ChangePasswordAsync(userId, dto);
+            return Ok(new { message = "Şifreniz başarıyla değiştirildi." });
         }
 
         [AllowAnonymous]

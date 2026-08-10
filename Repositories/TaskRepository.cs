@@ -56,12 +56,20 @@ namespace TaskMngBack.Repositories
                 t.AssignedUsers.Any(u => u.Id == userId));
         }
 
+        public Task<bool> HasTasksForStatusAsync(Guid statusId)
+        {
+            return _context.Tasks.AnyAsync(t => t.StatusId == statusId);
+        }
+
         private static IQueryable<TaskItem> IncludeNavigations(IQueryable<TaskItem> query)
         {
             return query
+                .Include(t => t.StatusDefinition)
                 .Include(t => t.Department)
+                .Include(t => t.Project)
                 .Include(t => t.CreatedByUser)
-                .Include(t => t.AssignedUsers);
+                .Include(t => t.AssignedUsers)
+                .Include(t => t.Labels);
         }
     }
 }

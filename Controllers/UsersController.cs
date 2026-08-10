@@ -31,6 +31,13 @@ namespace TaskMngBack.Controllers
             return Ok(user);
         }
 
+        [HttpPost]
+        public async Task<ActionResult<UserDto>> Create(CreateUserDto dto)
+        {
+            var user = await _userService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+        }
+
         [HttpPut("{id:int}")]
         public async Task<ActionResult<UserDto>> Update(int id, UpdateUserDto dto)
         {
