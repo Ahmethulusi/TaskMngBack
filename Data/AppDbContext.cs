@@ -17,6 +17,8 @@ namespace TaskMngBack.Data
         public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
         public DbSet<TaskStatusDefinition> TaskStatuses => Set<TaskStatusDefinition>();
         public DbSet<Label> Labels => Set<Label>();
+        public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,6 +70,30 @@ namespace TaskMngBack.Data
                 .WithMany()
                 .HasForeignKey(t => t.StatusId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Task)
+                .WithMany(t => t.Comments)
+                .HasForeignKey(c => c.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Task)
+                .WithMany(t => t.ActivityLogs)
+                .HasForeignKey(a => a.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<TaskStatusDefinition>().HasData(
                 new TaskStatusDefinition

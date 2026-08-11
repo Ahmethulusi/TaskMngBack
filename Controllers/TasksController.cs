@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TaskMngBack.DTOs.Activity;
 using TaskMngBack.DTOs.Tasks;
 using TaskMngBack.Services.Interfaces;
 
@@ -12,10 +13,12 @@ namespace TaskMngBack.Controllers
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly IActivityLogService _activityLogService;
 
-        public TasksController(ITaskService taskService)
+        public TasksController(ITaskService taskService, IActivityLogService activityLogService)
         {
             _taskService = taskService;
+            _activityLogService = activityLogService;
         }
 
         [HttpGet]
@@ -64,7 +67,7 @@ namespace TaskMngBack.Controllers
         [HttpPatch("{id:int}/assign")]
         public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)
         {
-            var task = await _taskService.AssignTask(id, dto.AssignedUserIds);
+            var task = await _taskService.AssignTask(id, dto.AssignedUserIds, GetCurrentUserId());
             return Ok(task);
         }
 
@@ -73,6 +76,13 @@ namespace TaskMngBack.Controllers
         {
             await _taskService.Delete(id, GetCurrentUserId(), IsCurrentUserAdmin());
             return NoContent();
+        }
+
+        [HttpGet("{id:int}/activity")]
+        public async Task<ActionResult<List<ActivityLogDto>>> GetActivity(int id)
+        {
+            var activityLogs = await _activityLogService.GetByTaskIdAsync(id, GetCurrentUserId(), IsCurrentUserAdmin());
+            return Ok(activityLogs);
         }
 
         private int GetCurrentUserId()

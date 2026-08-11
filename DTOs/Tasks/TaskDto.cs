@@ -27,5 +27,6 @@ namespace TaskMngBack.DTOs.Tasks
 
         public List<UserSummaryDto> AssignedUsers { get; set; } = new();
         public List<LabelDto> Labels { get; set; } = new();
+        public int CommentCount { get; set; }
     }
 }

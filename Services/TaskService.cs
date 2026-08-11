@@ -15,17 +15,20 @@ namespace TaskMngBack.Services
         private readonly IUserRepository _userRepository;
         private readonly ITaskStatusRepository _taskStatusRepository;
         private readonly ILabelRepository _labelRepository;
+        private readonly IActivityLogService _activityLogService;
 
         public TaskService(
             ITaskRepository taskRepository,
             IUserRepository userRepository,
             ITaskStatusRepository taskStatusRepository,
-            ILabelRepository labelRepository)
+            ILabelRepository labelRepository,
+            IActivityLogService activityLogService)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
             _taskStatusRepository = taskStatusRepository;
             _labelRepository = labelRepository;
+            _activityLogService = activityLogService;
         }
 
         public async Task<List<TaskDto>> GetAllForUser(int userId, bool isAdmin)
@@ -34,7 +37,14 @@ namespace TaskMngBack.Services
                 ? await _taskRepository.GetAllAsync()
                 : await _taskRepository.GetByUserAsync(userId);
 
-            return tasks.Select(MapToDto).ToList();
+            var taskDtos = tasks.Select(MapToDto).ToList();
+
+            foreach (var taskDto in taskDtos)
+            {
+                taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskDto.Id);
+            }
+
+            return taskDtos;
         }
 
         public async Task<TaskDto> GetByIdForUser(int taskId, int userId, bool isAdmin)
@@ -48,7 +58,10 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevi görüntüleme yetkiniz yok.");
             }
 
-            return MapToDto(task);
+            var taskDto = MapToDto(task);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            return taskDto;
         }
 
         public async Task<TaskDto> Create(CreateTaskDto dto, int userId, bool isAdmin)
@@ -77,8 +90,13 @@ namespace TaskMngBack.Services
 
             await _taskRepository.AddAsync(task);
 
+            await _activityLogService.LogAsync(task.Id, userId, "Created", null, "Görev oluşturuldu");
+
             var created = await GetTaskOrThrowAsync(task.Id);
-            return MapToDto(created);
+            var taskDto = MapToDto(created);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(created.Id);
+
+            return taskDto;
         }
 
         public async Task<TaskDto> Update(int taskId, UpdateTaskDto dto, int userId, bool isAdmin)
@@ -90,9 +108,20 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevi güncelleme yetkiniz yok.");
             }
 
+            var oldTitle = task.Title;
+            var oldDescription = task.Description;
+            var oldPriority = task.Priority;
+            var oldDueDate = task.DueDate;
+            var oldDepartmentId = task.DepartmentId;
+            var oldDepartmentName = task.Department?.Name;
+            var oldProjectId = task.ProjectId;
+            var oldProjectName = task.Project?.Name;
+
+            var newPriority = Enum.Parse<TaskPriority>(dto.Priority, ignoreCase: true);
+
             task.Title = dto.Title;
             task.Description = dto.Description;
-            task.Priority = Enum.Parse<TaskPriority>(dto.Priority, ignoreCase: true);
+            task.Priority = newPriority;
             task.DueDate = dto.DueDate;
             task.DepartmentId = dto.DepartmentId;
             task.ProjectId = dto.ProjectId;
@@ -100,7 +129,52 @@ namespace TaskMngBack.Services
 
             await _taskRepository.UpdateAsync(task);
 
-            return MapToDto(task);
+            if (oldTitle != dto.Title)
+            {
+                await _activityLogService.LogAsync(taskId, userId, "Title", oldTitle, dto.Title);
+            }
+
+            if (oldDescription != dto.Description)
+            {
+                await _activityLogService.LogAsync(taskId, userId, "Description", 
+                    "Açıklama güncellendi", "Açıklama güncellendi");
+            }
+
+            if (oldPriority != newPriority)
+            {
+                await _activityLogService.LogAsync(taskId, userId, "Priority", 
+                    oldPriority.ToString(), newPriority.ToString());
+            }
+
+            if (oldDueDate != dto.DueDate)
+            {
+                var oldValue = oldDueDate?.ToString("dd.MM.yyyy");
+                var newValue = dto.DueDate?.ToString("dd.MM.yyyy");
+                await _activityLogService.LogAsync(taskId, userId, "DueDate", oldValue, newValue);
+            }
+
+            if (oldDepartmentId != dto.DepartmentId)
+            {
+                var newDepartmentName = dto.DepartmentId.HasValue 
+                    ? (await _taskRepository.GetByIdAsync(taskId))?.Department?.Name 
+                    : null;
+                await _activityLogService.LogAsync(taskId, userId, "Department", 
+                    oldDepartmentName, newDepartmentName);
+            }
+
+            if (oldProjectId != dto.ProjectId)
+            {
+                var newProjectName = dto.ProjectId.HasValue 
+                    ? (await _taskRepository.GetByIdAsync(taskId))?.Project?.Name 
+                    : null;
+                await _activityLogService.LogAsync(taskId, userId, "Project", 
+                    oldProjectName, newProjectName);
+            }
+
+            var taskDto = MapToDto(task);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            return taskDto;
         }
 
         public async Task<TaskDto> UpdateStatus(int taskId, UpdateTaskStatusDto dto, int userId, bool isAdmin)
@@ -120,12 +194,19 @@ namespace TaskMngBack.Services
                 throw new NotFoundException($"Id'si {dto.StatusId} olan durum bulunamadı.");
             }
 
+            var oldStatusName = task.StatusDefinition?.Name;
+
             task.StatusId = dto.StatusId;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
 
-            return MapToDto(task);
+            await _activityLogService.LogAsync(taskId, userId, "Status", oldStatusName, status.Name);
+
+            var taskDto = MapToDto(task);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            return taskDto;
         }
 
         public async Task<TaskDto> UpdateLabels(int taskId, UpdateTaskLabelsDto dto, int userId, bool isAdmin)
@@ -139,6 +220,10 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevin etiketlerini güncelleme yetkiniz yok.");
             }
 
+            var oldLabelNames = task.Labels.Any() 
+                ? string.Join(", ", task.Labels.Select(l => l.Name))
+                : "Kimse yok";
+
             var labels = await ResolveLabelsAsync(dto.LabelIds);
 
             task.Labels = labels;
@@ -146,8 +231,18 @@ namespace TaskMngBack.Services
 
             await _taskRepository.UpdateAsync(task);
 
+            var newLabelNames = labels.Any() 
+                ? string.Join(", ", labels.Select(l => l.Name))
+                : "Kimse yok";
+
+            await _activityLogService.LogAsync(taskId, userId, "Labels", 
+                oldLabelNames, newLabelNames);
+
             var updated = await GetTaskOrThrowAsync(taskId);
-            return MapToDto(updated);
+            var taskDto = MapToDto(updated);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            return taskDto;
         }
 
         public async Task Delete(int taskId, int userId, bool isAdmin)
@@ -162,9 +257,14 @@ namespace TaskMngBack.Services
             await _taskRepository.DeleteAsync(task);
         }
 
-        public async Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds)
+        public async Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds, int userId)
         {
             var task = await GetTaskOrThrowAsync(taskId);
+            
+            var oldAssignedNames = task.AssignedUsers.Any() 
+                ? string.Join(", ", task.AssignedUsers.Select(u => u.FullName))
+                : "Kimse yok";
+
             var assignedUsers = await ResolveAssignedUsersAsync(assignedUserIds, userId: 0, isAdmin: true);
 
             task.AssignedUsers = assignedUsers;
@@ -172,8 +272,18 @@ namespace TaskMngBack.Services
 
             await _taskRepository.UpdateAsync(task);
 
+            var newAssignedNames = assignedUsers.Any() 
+                ? string.Join(", ", assignedUsers.Select(u => u.FullName))
+                : "Kimse yok";
+
+            await _activityLogService.LogAsync(taskId, userId, "AssignedUsers", 
+                oldAssignedNames, newAssignedNames);
+
             var updated = await GetTaskOrThrowAsync(taskId);
-            return MapToDto(updated);
+            var taskDto = MapToDto(updated);
+            taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            return taskDto;
         }
 
         private async Task<List<User>> ResolveAssignedUsersAsync(List<int> assignedUserIds, int userId, bool isAdmin)

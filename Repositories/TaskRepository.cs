@@ -61,6 +61,11 @@ namespace TaskMngBack.Repositories
             return _context.Tasks.AnyAsync(t => t.StatusId == statusId);
         }
 
+        public Task<int> GetCommentCountAsync(int taskId)
+        {
+            return _context.Comments.CountAsync(c => c.TaskId == taskId);
+        }
+
         private static IQueryable<TaskItem> IncludeNavigations(IQueryable<TaskItem> query)
         {
             return query

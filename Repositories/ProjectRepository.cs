@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskMngBack.Data;
+using TaskMngBack.Exceptions;
 using TaskMngBack.Models;
 using TaskMngBack.Repositories.Interfaces;
 
@@ -8,10 +9,12 @@ namespace TaskMngBack.Repositories
     public class ProjectRepository : IProjectRepository
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ProjectRepository> _logger;
 
-        public ProjectRepository(AppDbContext context)
+        public ProjectRepository(AppDbContext context, ILogger<ProjectRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public Task<List<Project>> GetAllAsync()
@@ -38,14 +41,52 @@ namespace TaskMngBack.Repositories
 
         public async Task UpdateAsync(Project project)
         {
-            _context.Projects.Update(project);
-            await _context.SaveChangesAsync();
+            var entry = _context.Entry(project);
+            if (entry.State == EntityState.Detached)
+            {
+                _context.Projects.Update(project);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                LogConcurrencyConflict(ex);
+                throw new NotFoundException(
+                    "Proje bulunamadı. Başka bir kullanıcı tarafından silinmiş olabilir; lütfen sayfayı yenileyin.");
+            }
         }
 
         public async Task DeleteAsync(Project project)
         {
             _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                LogConcurrencyConflict(ex);
+                throw new NotFoundException(
+                    "Proje bulunamadı. Zaten silinmiş olabilir; lütfen sayfayı yenileyin.");
+            }
+        }
+
+        private void LogConcurrencyConflict(DbUpdateConcurrencyException ex)
+        {
+            foreach (var entry in ex.Entries)
+            {
+                var keyValues = entry.Metadata.FindPrimaryKey()?.Properties
+                    .Select(p => $"{p.Name}={entry.Property(p.Name).CurrentValue}");
+                _logger.LogError(
+                    "Concurrency conflict on {EntityType} ({KeyValues}), state {State}",
+                    entry.Entity.GetType().Name,
+                    keyValues is null ? "unknown" : string.Join(", ", keyValues),
+                    entry.State);
+            }
         }
     }
 }

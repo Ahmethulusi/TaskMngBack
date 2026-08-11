@@ -12,5 +12,6 @@ namespace TaskMngBack.Repositories.Interfaces
         Task DeleteAsync(TaskItem task);
         Task<bool> HasTasksForUserAsync(int userId);
         Task<bool> HasTasksForStatusAsync(Guid statusId);
+        Task<int> GetCommentCountAsync(int taskId);
     }
 }

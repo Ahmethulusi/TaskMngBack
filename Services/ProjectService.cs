@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using TaskMngBack.Constants;
+using TaskMngBack.Data;
 using TaskMngBack.DTOs.Projects;
 using TaskMngBack.Exceptions;
 using TaskMngBack.Models;
@@ -11,13 +14,16 @@ namespace TaskMngBack.Services
     {
         private readonly IProjectRepository _projectRepository;
         private readonly IUserRepository _userRepository;
+        private readonly AppDbContext _context;
 
         public ProjectService(
             IProjectRepository projectRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            AppDbContext context)
         {
             _projectRepository = projectRepository;
             _userRepository = userRepository;
+            _context = context;
         }
 
         public async Task<List<ProjectDto>> GetAllAsync()
@@ -36,11 +42,14 @@ namespace TaskMngBack.Services
         {
             var members = await ResolveMembersAsync(dto.Members);
 
+            var iconKey = ValidateAndGetIconKey(dto.IconKey);
+
             var project = new Project
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Description = dto.Description,
+                IconKey = iconKey,
                 CreatedAt = DateTime.UtcNow,
                 Members = members
             };
@@ -55,14 +64,29 @@ namespace TaskMngBack.Services
         {
             var project = await GetProjectOrThrowAsync(id);
 
+            var iconKey = ValidateAndGetIconKey(dto.IconKey);
+
             project.Name = dto.Name;
             project.Description = dto.Description;
-            project.Members = await ResolveMembersAsync(dto.Members);
+            project.IconKey = iconKey;
+
+            if (dto.Members.Any())
+            {
+                project.Members.Clear();
+                var newMembers = await ResolveMembersAsync(dto.Members);
+                foreach (var member in newMembers)
+                {
+                    project.Members.Add(member);
+                    // EF Core, elle atanmış bir Guid PK'ya sahip yeni entity'leri navigation
+                    // koleksiyonuna eklerken "Added" yerine "Modified" olarak işaretleyebiliyor
+                    // (zaten var olduğunu varsayıyor). Durumu açıkça zorluyoruz.
+                    _context.Entry(member).State = EntityState.Added;
+                }
+            }
 
             await _projectRepository.UpdateAsync(project);
 
-            var updated = await GetProjectOrThrowAsync(id);
-            return MapToDto(updated);
+            return MapToDto(project);
         }
 
         public async Task DeleteAsync(Guid id)
@@ -106,6 +130,21 @@ namespace TaskMngBack.Services
             return project;
         }
 
+        private static string ValidateAndGetIconKey(string? iconKey)
+        {
+            if (string.IsNullOrWhiteSpace(iconKey))
+            {
+                return ProjectIcons.DefaultKey;
+            }
+
+            if (!ProjectIcons.AllowedKeys.Contains(iconKey))
+            {
+                throw new BadRequestException("Geçersiz ikon seçimi.");
+            }
+
+            return iconKey;
+        }
+
         private static ProjectDto MapToDto(Project project)
         {
             return new ProjectDto
@@ -113,6 +152,7 @@ namespace TaskMngBack.Services
                 Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
+                IconKey = project.IconKey,
                 CreatedAt = project.CreatedAt,
                 Members = project.Members
                     .Select(m => new ProjectMemberDto

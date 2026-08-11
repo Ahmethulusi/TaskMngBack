@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TaskMngBack.Data;
@@ -11,9 +12,11 @@ using TaskMngBack.Data;
 namespace TaskMngBack.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811065650_AddComments")]
+    partial class AddComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,40 +68,6 @@ namespace TaskMngBack.Migrations
                     b.HasIndex("AssignedUsersId");
 
                     b.ToTable("TaskAssignees", (string)null);
-                });
-
-            modelBuilder.Entity("TaskMngBack.Models.ActivityLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FieldName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NewValue")
-                        .HasColumnType("text");
-
-                    b.Property<string>("OldValue")
-                        .HasColumnType("text");
-
-                    b.Property<int>("TaskId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ActivityLogs");
                 });
 
             modelBuilder.Entity("TaskMngBack.Models.Comment", b =>
@@ -179,10 +148,6 @@ namespace TaskMngBack.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("IconKey")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
@@ -415,25 +380,6 @@ namespace TaskMngBack.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TaskMngBack.Models.ActivityLog", b =>
-                {
-                    b.HasOne("TaskMngBack.Models.TaskItem", "Task")
-                        .WithMany("ActivityLogs")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TaskMngBack.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Task");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TaskMngBack.Models.Comment", b =>
                 {
                     b.HasOne("TaskMngBack.Models.TaskItem", "Task")
@@ -527,8 +473,6 @@ namespace TaskMngBack.Migrations
 
             modelBuilder.Entity("TaskMngBack.Models.TaskItem", b =>
                 {
-                    b.Navigation("ActivityLogs");
-
                     b.Navigation("Comments");
                 });
 

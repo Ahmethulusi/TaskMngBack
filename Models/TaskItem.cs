@@ -26,5 +26,7 @@ namespace TaskMngBack.Models
 
         public ICollection<User> AssignedUsers { get; set; } = new List<User>();
         public ICollection<Label> Labels { get; set; } = new List<Label>();
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
     }
 }

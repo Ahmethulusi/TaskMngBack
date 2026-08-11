@@ -11,6 +11,8 @@ namespace TaskMngBack.DTOs.Projects
         [MaxLength(2000)]
         public string? Description { get; set; }
 
+        public string? IconKey { get; set; }
+
         public List<ProjectMemberInputDto> Members { get; set; } = new();
     }
 }
