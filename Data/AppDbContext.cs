@@ -19,6 +19,8 @@ namespace TaskMngBack.Data
         public DbSet<Label> Labels => Set<Label>();
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+        public DbSet<Role> Roles => Set<Role>();
+        public DbSet<Permission> Permissions => Set<Permission>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -95,6 +97,32 @@ namespace TaskMngBack.Data
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Role>()
+                .HasIndex(r => r.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<Permission>()
+                .HasIndex(p => p.Key)
+                .IsUnique();
+
+            modelBuilder.Entity<Role>()
+                .HasMany(r => r.Permissions)
+                .WithMany(p => p.Roles)
+                .UsingEntity<Dictionary<string, object>>(
+                    "RolePermissions",
+                    j => j.HasOne<Permission>().WithMany().HasForeignKey("PermissionsId"),
+                    j => j.HasOne<Role>().WithMany().HasForeignKey("RolesId"),
+                    j => j.HasKey("RolesId", "PermissionsId"));
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Roles)
+                .WithMany(r => r.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserRoles",
+                    j => j.HasOne<Role>().WithMany().HasForeignKey("RolesId"),
+                    j => j.HasOne<User>().WithMany().HasForeignKey("UsersId"),
+                    j => j.HasKey("UsersId", "RolesId"));
+
             modelBuilder.Entity<TaskStatusDefinition>().HasData(
                 new TaskStatusDefinition
                 {
@@ -132,6 +160,45 @@ namespace TaskMngBack.Data
                 Role = UserRole.Admin,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             });
+
+            var adminRoleId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+            var userRoleId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = adminRoleId, Name = "Admin" },
+                new Role { Id = userRoleId, Name = "User" }
+            );
+
+            var permDepartmentsManage = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var permUsersManage = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            var permProjectsManage = Guid.Parse("33333333-3333-3333-3333-333333333333");
+            var permStatusesManage = Guid.Parse("44444444-4444-4444-4444-444444444444");
+            var permTasksViewAll = Guid.Parse("55555555-5555-5555-5555-555555555555");
+            var permTasksUpdateAll = Guid.Parse("66666666-6666-6666-6666-666666666666");
+            var permTasksDeleteAll = Guid.Parse("77777777-7777-7777-7777-777777777777");
+            var permTasksAssign = Guid.Parse("88888888-8888-8888-8888-888888888888");
+
+            modelBuilder.Entity<Permission>().HasData(
+                new Permission { Id = permDepartmentsManage, Key = "departments.manage", Description = "Departman oluşturma/düzenleme/silme" },
+                new Permission { Id = permUsersManage, Key = "users.manage", Description = "Kullanıcı listeleme/düzenleme/silme" },
+                new Permission { Id = permProjectsManage, Key = "projects.manage", Description = "Proje oluşturma/düzenleme/silme" },
+                new Permission { Id = permStatusesManage, Key = "statuses.manage", Description = "Görev durumu tanımlarını yönetme" },
+                new Permission { Id = permTasksViewAll, Key = "tasks.view.all", Description = "Tüm görevleri görüntüleme (sahiplik farketmeksizin)" },
+                new Permission { Id = permTasksUpdateAll, Key = "tasks.update.all", Description = "Tüm görevleri güncelleme" },
+                new Permission { Id = permTasksDeleteAll, Key = "tasks.delete.all", Description = "Tüm görevleri silme" },
+                new Permission { Id = permTasksAssign, Key = "tasks.assign", Description = "Görevlere kullanıcı atama" }
+            );
+
+            modelBuilder.Entity("RolePermissions").HasData(
+                new { RolesId = adminRoleId, PermissionsId = permDepartmentsManage },
+                new { RolesId = adminRoleId, PermissionsId = permUsersManage },
+                new { RolesId = adminRoleId, PermissionsId = permProjectsManage },
+                new { RolesId = adminRoleId, PermissionsId = permStatusesManage },
+                new { RolesId = adminRoleId, PermissionsId = permTasksViewAll },
+                new { RolesId = adminRoleId, PermissionsId = permTasksUpdateAll },
+                new { RolesId = adminRoleId, PermissionsId = permTasksDeleteAll },
+                new { RolesId = adminRoleId, PermissionsId = permTasksAssign }
+            );
 
             base.OnModelCreating(modelBuilder);
         }

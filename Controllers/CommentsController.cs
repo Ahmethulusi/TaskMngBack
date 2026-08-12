@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskMngBack.DTOs.Comments;
+using TaskMngBack.Extensions;
 using TaskMngBack.Services.Interfaces;
 
 namespace TaskMngBack.Controllers
@@ -21,14 +22,14 @@ namespace TaskMngBack.Controllers
         [HttpGet("tasks/{taskId:int}/comments")]
         public async Task<ActionResult<List<CommentDto>>> GetForTask(int taskId)
         {
-            var comments = await _commentService.GetForTask(taskId, GetCurrentUserId(), IsCurrentUserAdmin());
+            var comments = await _commentService.GetForTask(taskId, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(comments);
         }
 
         [HttpPost("tasks/{taskId:int}/comments")]
         public async Task<ActionResult<CommentDto>> Create(int taskId, CreateCommentDto dto)
         {
-            var comment = await _commentService.CreateAsync(taskId, dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            var comment = await _commentService.CreateAsync(taskId, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return CreatedAtAction(nameof(GetForTask), new { taskId }, comment);
         }
 
@@ -42,7 +43,7 @@ namespace TaskMngBack.Controllers
         [HttpDelete("comments/{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _commentService.DeleteAsync(id, GetCurrentUserId(), IsCurrentUserAdmin());
+            await _commentService.DeleteAsync(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return NoContent();
         }
 
@@ -51,9 +52,9 @@ namespace TaskMngBack.Controllers
             return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         }
 
-        private bool IsCurrentUserAdmin()
+        private List<string> GetCurrentUserPermissions()
         {
-            return User.IsInRole("Admin");
+            return User.GetPermissions();
         }
     }
 }

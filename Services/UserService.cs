@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using TaskMngBack.DTOs.Departments;
 using TaskMngBack.DTOs.Users;
 using TaskMngBack.Exceptions;
@@ -13,15 +14,21 @@ namespace TaskMngBack.Services
         private readonly IUserRepository _userRepository;
         private readonly IDepartmentRepository _departmentRepository;
         private readonly ITaskRepository _taskRepository;
+        private readonly IRoleRepository _roleRepository;
+        private readonly ILogger<UserService> _logger;
 
         public UserService(
             IUserRepository userRepository,
             IDepartmentRepository departmentRepository,
-            ITaskRepository taskRepository)
+            ITaskRepository taskRepository,
+            IRoleRepository roleRepository,
+            ILogger<UserService> logger)
         {
             _userRepository = userRepository;
             _departmentRepository = departmentRepository;
             _taskRepository = taskRepository;
+            _roleRepository = roleRepository;
+            _logger = logger;
         }
 
         public async Task<List<UserDto>> GetAllAsync()
@@ -58,6 +65,13 @@ namespace TaskMngBack.Services
 
             await _userRepository.AddAsync(user);
 
+            var role = await _roleRepository.GetByNameAsync(dto.Role);
+            if (role != null)
+            {
+                user.Roles.Add(role);
+                await _userRepository.UpdateAsync(user);
+            }
+
             var created = await GetUserOrThrowAsync(user.Id);
             return MapToDto(created);
         }
@@ -71,9 +85,25 @@ namespace TaskMngBack.Services
             user.Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true);
 
             var departments = await ResolveDepartmentsAsync(dto.DepartmentIds);
-            user.Departments = departments;
+            user.Departments.Clear();
+            foreach (var department in departments)
+            {
+                user.Departments.Add(department);
+            }
+
+            var role = await _roleRepository.GetByNameAsync(dto.Role);
+            if (role is null)
+            {
+                throw new NotFoundException($"'{dto.Role}' isimli rol bulunamadı.");
+            }
+
+            user.Roles.Clear();
+            user.Roles.Add(role);
 
             await _userRepository.UpdateAsync(user);
+
+            var updatedRoles = string.Join(", ", user.Roles.Select(r => r.Name));
+            _logger.LogInformation("User {UserId} roles updated to: {Roles}", user.Id, updatedRoles);
 
             return MapToDto(user);
         }
@@ -130,6 +160,7 @@ namespace TaskMngBack.Services
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role.ToString(),
+                Roles = user.Roles.Select(r => r.Name).ToList(),
                 CreatedAt = user.CreatedAt,
                 Departments = user.Departments
                     .Select(d => new DepartmentDto

@@ -31,7 +31,7 @@ namespace TaskMngBack.Controllers
             return Ok(department);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:departments.manage")]
         [HttpPost]
         public async Task<ActionResult<DepartmentDto>> Create(CreateDepartmentDto dto)
         {
@@ -39,7 +39,7 @@ namespace TaskMngBack.Controllers
             return CreatedAtAction(nameof(GetById), new { id = department.Id }, department);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:departments.manage")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<DepartmentDto>> Update(int id, UpdateDepartmentDto dto)
         {
@@ -47,7 +47,7 @@ namespace TaskMngBack.Controllers
             return Ok(department);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:departments.manage")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

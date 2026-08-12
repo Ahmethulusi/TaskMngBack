@@ -16,7 +16,10 @@ namespace TaskMngBack.Repositories
 
         public Task<User?> GetByEmailAsync(string email)
         {
-            return _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return _context.Users
+                .Include(u => u.Roles)
+                    .ThenInclude(r => r.Permissions)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task AddAsync(User user)
@@ -34,6 +37,7 @@ namespace TaskMngBack.Repositories
         {
             return _context.Users
                 .Include(u => u.Departments)
+                .Include(u => u.Roles)
                 .ToListAsync();
         }
 
@@ -41,6 +45,7 @@ namespace TaskMngBack.Repositories
         {
             return _context.Users
                 .Include(u => u.Departments)
+                .Include(u => u.Roles)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 

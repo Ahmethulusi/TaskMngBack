@@ -24,7 +24,7 @@ namespace TaskMngBack.Controllers
             return Ok(statuses);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:statuses.manage")]
         [HttpPost]
         public async Task<ActionResult<TaskStatusDto>> Create(CreateTaskStatusDto dto)
         {
@@ -32,7 +32,7 @@ namespace TaskMngBack.Controllers
             return CreatedAtAction(nameof(GetAll), new { id = status.Id }, status);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:statuses.manage")]
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<TaskStatusDto>> Update(Guid id, UpdateTaskStatusDefinitionDto dto)
         {
@@ -40,7 +40,7 @@ namespace TaskMngBack.Controllers
             return Ok(status);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:statuses.manage")]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {

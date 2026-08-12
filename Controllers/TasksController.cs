@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskMngBack.DTOs.Activity;
 using TaskMngBack.DTOs.Tasks;
+using TaskMngBack.Extensions;
 using TaskMngBack.Services.Interfaces;
 
 namespace TaskMngBack.Controllers
@@ -24,46 +25,46 @@ namespace TaskMngBack.Controllers
         [HttpGet]
         public async Task<ActionResult<List<TaskDto>>> GetAll()
         {
-            var tasks = await _taskService.GetAllForUser(GetCurrentUserId(), IsCurrentUserAdmin());
+            var tasks = await _taskService.GetAllForUser(GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(tasks);
         }
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TaskDto>> GetById(int id)
         {
-            var task = await _taskService.GetByIdForUser(id, GetCurrentUserId(), IsCurrentUserAdmin());
+            var task = await _taskService.GetByIdForUser(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(task);
         }
 
         [HttpPost]
         public async Task<ActionResult<TaskDto>> Create(CreateTaskDto dto)
         {
-            var task = await _taskService.Create(dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            var task = await _taskService.Create(dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
         }
 
         [HttpPut("{id:int}")]
         public async Task<ActionResult<TaskDto>> Update(int id, UpdateTaskDto dto)
         {
-            var task = await _taskService.Update(id, dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            var task = await _taskService.Update(id, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(task);
         }
 
         [HttpPatch("{id:int}/status")]
         public async Task<ActionResult<TaskDto>> UpdateStatus(int id, UpdateTaskStatusDto dto)
         {
-            var task = await _taskService.UpdateStatus(id, dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            var task = await _taskService.UpdateStatus(id, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(task);
         }
 
         [HttpPatch("{id:int}/labels")]
         public async Task<ActionResult<TaskDto>> UpdateLabels(int id, UpdateTaskLabelsDto dto)
         {
-            var task = await _taskService.UpdateLabels(id, dto, GetCurrentUserId(), IsCurrentUserAdmin());
+            var task = await _taskService.UpdateLabels(id, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(task);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:tasks.assign")]
         [HttpPatch("{id:int}/assign")]
         public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)
         {
@@ -74,14 +75,14 @@ namespace TaskMngBack.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _taskService.Delete(id, GetCurrentUserId(), IsCurrentUserAdmin());
+            await _taskService.Delete(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return NoContent();
         }
 
         [HttpGet("{id:int}/activity")]
         public async Task<ActionResult<List<ActivityLogDto>>> GetActivity(int id)
         {
-            var activityLogs = await _activityLogService.GetByTaskIdAsync(id, GetCurrentUserId(), IsCurrentUserAdmin());
+            var activityLogs = await _activityLogService.GetByTaskIdAsync(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(activityLogs);
         }
 
@@ -90,9 +91,9 @@ namespace TaskMngBack.Controllers
             return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         }
 
-        private bool IsCurrentUserAdmin()
+        private List<string> GetCurrentUserPermissions()
         {
-            return User.IsInRole("Admin");
+            return User.GetPermissions();
         }
     }
 }

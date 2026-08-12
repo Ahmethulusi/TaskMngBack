@@ -7,7 +7,7 @@ namespace TaskMngBack.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Permission:users.manage")]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;

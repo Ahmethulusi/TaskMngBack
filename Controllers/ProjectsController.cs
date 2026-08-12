@@ -31,7 +31,7 @@ namespace TaskMngBack.Controllers
             return Ok(project);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:projects.manage")]
         [HttpPost]
         public async Task<ActionResult<ProjectDto>> Create(CreateProjectDto dto)
         {
@@ -39,7 +39,7 @@ namespace TaskMngBack.Controllers
             return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:projects.manage")]
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<ProjectDto>> Update(Guid id, UpdateProjectDto dto)
         {
@@ -47,7 +47,7 @@ namespace TaskMngBack.Controllers
             return Ok(project);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "Permission:projects.manage")]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {

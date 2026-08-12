@@ -15,5 +15,6 @@ namespace TaskMngBack.Models
         public ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
         public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
         public ICollection<Department> Departments { get; set; } = new List<Department>();
+        public ICollection<Role> Roles { get; set; } = new List<Role>();
     }
 }

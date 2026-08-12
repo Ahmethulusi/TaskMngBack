@@ -35,7 +35,7 @@ namespace TaskMngBack.Services
             await _activityLogRepository.AddAsync(activityLog);
         }
 
-        public async Task<List<ActivityLogDto>> GetByTaskIdAsync(int taskId, int userId, bool isAdmin)
+        public async Task<List<ActivityLogDto>> GetByTaskIdAsync(int taskId, int userId, List<string> permissions)
         {
             var task = await _taskRepository.GetByIdAsync(taskId);
 
@@ -44,7 +44,7 @@ namespace TaskMngBack.Services
                 throw new NotFoundException($"Id'si {taskId} olan görev bulunamadı.");
             }
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {

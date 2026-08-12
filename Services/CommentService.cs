@@ -19,11 +19,11 @@ namespace TaskMngBack.Services
             _taskRepository = taskRepository;
         }
 
-        public async Task<List<CommentDto>> GetForTask(int taskId, int userId, bool isAdmin)
+        public async Task<List<CommentDto>> GetForTask(int taskId, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {
@@ -34,11 +34,11 @@ namespace TaskMngBack.Services
             return comments.Select(MapToDto).ToList();
         }
 
-        public async Task<CommentDto> CreateAsync(int taskId, CreateCommentDto dto, int userId, bool isAdmin)
+        public async Task<CommentDto> CreateAsync(int taskId, CreateCommentDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {
@@ -78,11 +78,11 @@ namespace TaskMngBack.Services
             return MapToDto(updated);
         }
 
-        public async Task DeleteAsync(Guid commentId, int userId, bool isAdmin)
+        public async Task DeleteAsync(Guid commentId, int userId, List<string> permissions)
         {
             var comment = await GetCommentOrThrowAsync(commentId);
 
-            if (!isAdmin && comment.UserId != userId)
+            if (!permissions.Contains("tasks.delete.all") && comment.UserId != userId)
             {
                 throw new ForbiddenAccessException("Bu yorumu silme yetkiniz yok.");
             }

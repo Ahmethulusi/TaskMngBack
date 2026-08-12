@@ -31,9 +31,9 @@ namespace TaskMngBack.Services
             _activityLogService = activityLogService;
         }
 
-        public async Task<List<TaskDto>> GetAllForUser(int userId, bool isAdmin)
+        public async Task<List<TaskDto>> GetAllForUser(int userId, List<string> permissions)
         {
-            var tasks = isAdmin
+            var tasks = permissions.Contains("tasks.view.all")
                 ? await _taskRepository.GetAllAsync()
                 : await _taskRepository.GetByUserAsync(userId);
 
@@ -47,11 +47,11 @@ namespace TaskMngBack.Services
             return taskDtos;
         }
 
-        public async Task<TaskDto> GetByIdForUser(int taskId, int userId, bool isAdmin)
+        public async Task<TaskDto> GetByIdForUser(int taskId, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {
@@ -64,9 +64,9 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        public async Task<TaskDto> Create(CreateTaskDto dto, int userId, bool isAdmin)
+        public async Task<TaskDto> Create(CreateTaskDto dto, int userId, List<string> permissions)
         {
-            var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, isAdmin);
+            var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, permissions);
 
             var defaultStatus = await _taskStatusRepository.GetDefaultAsync();
             if (defaultStatus is null)
@@ -99,11 +99,11 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        public async Task<TaskDto> Update(int taskId, UpdateTaskDto dto, int userId, bool isAdmin)
+        public async Task<TaskDto> Update(int taskId, UpdateTaskDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin && task.CreatedByUserId != userId)
+            if (!permissions.Contains("tasks.update.all") && task.CreatedByUserId != userId)
             {
                 throw new ForbiddenAccessException("Bu görevi güncelleme yetkiniz yok.");
             }
@@ -177,11 +177,11 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        public async Task<TaskDto> UpdateStatus(int taskId, UpdateTaskStatusDto dto, int userId, bool isAdmin)
+        public async Task<TaskDto> UpdateStatus(int taskId, UpdateTaskStatusDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.update.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {
@@ -209,11 +209,11 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        public async Task<TaskDto> UpdateLabels(int taskId, UpdateTaskLabelsDto dto, int userId, bool isAdmin)
+        public async Task<TaskDto> UpdateLabels(int taskId, UpdateTaskLabelsDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin &&
+            if (!permissions.Contains("tasks.update.all") &&
                 task.CreatedByUserId != userId &&
                 !task.AssignedUsers.Any(u => u.Id == userId))
             {
@@ -245,11 +245,11 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        public async Task Delete(int taskId, int userId, bool isAdmin)
+        public async Task Delete(int taskId, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!isAdmin && task.CreatedByUserId != userId)
+            if (!permissions.Contains("tasks.delete.all") && task.CreatedByUserId != userId)
             {
                 throw new ForbiddenAccessException("Bu görevi silme yetkiniz yok.");
             }
@@ -265,7 +265,7 @@ namespace TaskMngBack.Services
                 ? string.Join(", ", task.AssignedUsers.Select(u => u.FullName))
                 : "Kimse yok";
 
-            var assignedUsers = await ResolveAssignedUsersAsync(assignedUserIds, userId: 0, isAdmin: true);
+            var assignedUsers = await ResolveAssignedUsersAsync(assignedUserIds, userId: 0, new List<string> { "tasks.assign" });
 
             task.AssignedUsers = assignedUsers;
             task.UpdatedAt = DateTime.UtcNow;
@@ -286,11 +286,11 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
-        private async Task<List<User>> ResolveAssignedUsersAsync(List<int> assignedUserIds, int userId, bool isAdmin)
+        private async Task<List<User>> ResolveAssignedUsersAsync(List<int> assignedUserIds, int userId, List<string> permissions)
         {
             var distinctIds = assignedUserIds.Distinct().ToList();
 
-            if (!isAdmin)
+            if (!permissions.Contains("tasks.assign"))
             {
                 if (distinctIds.Count > 1 ||
                     (distinctIds.Count == 1 && distinctIds[0] != userId))
