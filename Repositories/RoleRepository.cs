@@ -37,5 +37,38 @@ namespace TaskMngBack.Repositories
                 .Include(r => r.Permissions)
                 .FirstOrDefaultAsync(r => r.Name == name);
         }
+
+        public Task<Role?> GetByIdAsync(Guid id)
+        {
+            return _context.Roles
+                .Include(r => r.Permissions)
+                .FirstOrDefaultAsync(r => r.Id == id);
+        }
+
+        public Task<List<Role>> GetByIdsAsync(List<Guid> ids)
+        {
+            return _context.Roles
+                .Where(r => ids.Contains(r.Id))
+                .Include(r => r.Permissions)
+                .ToListAsync();
+        }
+
+        public async Task AddAsync(Role role)
+        {
+            await _context.Roles.AddAsync(role);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(Role role)
+        {
+            _context.Roles.Update(role);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(Role role)
+        {
+            _context.Roles.Remove(role);
+            await _context.SaveChangesAsync();
+        }
     }
 }

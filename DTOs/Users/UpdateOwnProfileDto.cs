@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TaskMngBack.DTOs.Users
 {
-    public class UpdateUserDto
+    public class UpdateOwnProfileDto
     {
         [Required]
         [MaxLength(100)]
@@ -11,10 +11,5 @@ namespace TaskMngBack.DTOs.Users
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
-
-        [MinLength(1, ErrorMessage = "En az bir rol seçilmeli.")]
-        public List<Guid> RoleIds { get; set; } = new();
-
-        public List<int> DepartmentIds { get; set; } = new();
     }
 }

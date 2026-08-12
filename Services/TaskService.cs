@@ -16,19 +16,25 @@ namespace TaskMngBack.Services
         private readonly ITaskStatusRepository _taskStatusRepository;
         private readonly ILabelRepository _labelRepository;
         private readonly IActivityLogService _activityLogService;
+        private readonly IProjectRepository _projectRepository;
+        private readonly IDepartmentRepository _departmentRepository;
 
         public TaskService(
             ITaskRepository taskRepository,
             IUserRepository userRepository,
             ITaskStatusRepository taskStatusRepository,
             ILabelRepository labelRepository,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            IProjectRepository projectRepository,
+            IDepartmentRepository departmentRepository)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
             _taskStatusRepository = taskStatusRepository;
             _labelRepository = labelRepository;
             _activityLogService = activityLogService;
+            _projectRepository = projectRepository;
+            _departmentRepository = departmentRepository;
         }
 
         public async Task<List<TaskDto>> GetAllForUser(int userId, List<string> permissions)
@@ -53,7 +59,9 @@ namespace TaskMngBack.Services
 
             if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
-                !task.AssignedUsers.Any(u => u.Id == userId))
+                !task.AssignedUsers.Any(u => u.Id == userId) &&
+                !await IsProjectMemberAsync(task, userId) &&
+                !await IsDepartmentMemberAsync(task, userId))
             {
                 throw new ForbiddenAccessException("Bu görevi görüntüleme yetkiniz yok.");
             }
@@ -103,7 +111,10 @@ namespace TaskMngBack.Services
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!permissions.Contains("tasks.update.all") && task.CreatedByUserId != userId)
+            if (!permissions.Contains("tasks.update.all") && 
+                task.CreatedByUserId != userId && 
+                !await IsProjectOwnerAsync(task, userId) &&
+                !await IsDepartmentManagerAsync(task, userId))
             {
                 throw new ForbiddenAccessException("Bu görevi güncelleme yetkiniz yok.");
             }
@@ -183,7 +194,9 @@ namespace TaskMngBack.Services
 
             if (!permissions.Contains("tasks.update.all") &&
                 task.CreatedByUserId != userId &&
-                !task.AssignedUsers.Any(u => u.Id == userId))
+                !task.AssignedUsers.Any(u => u.Id == userId) &&
+                !await IsProjectOwnerAsync(task, userId) &&
+                !await IsDepartmentManagerAsync(task, userId))
             {
                 throw new ForbiddenAccessException("Bu görevin durumunu güncelleme yetkiniz yok.");
             }
@@ -215,7 +228,8 @@ namespace TaskMngBack.Services
 
             if (!permissions.Contains("tasks.update.all") &&
                 task.CreatedByUserId != userId &&
-                !task.AssignedUsers.Any(u => u.Id == userId))
+                !task.AssignedUsers.Any(u => u.Id == userId) &&
+                !await IsProjectOwnerAsync(task, userId))
             {
                 throw new ForbiddenAccessException("Bu görevin etiketlerini güncelleme yetkiniz yok.");
             }
@@ -249,7 +263,10 @@ namespace TaskMngBack.Services
         {
             var task = await GetTaskOrThrowAsync(taskId);
 
-            if (!permissions.Contains("tasks.delete.all") && task.CreatedByUserId != userId)
+            if (!permissions.Contains("tasks.delete.all") && 
+                task.CreatedByUserId != userId && 
+                !await IsProjectOwnerAsync(task, userId) &&
+                !await IsDepartmentManagerAsync(task, userId))
             {
                 throw new ForbiddenAccessException("Bu görevi silme yetkiniz yok.");
             }
@@ -257,9 +274,17 @@ namespace TaskMngBack.Services
             await _taskRepository.DeleteAsync(task);
         }
 
-        public async Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds, int userId)
+        public async Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
+
+            var canAssign = permissions.Contains("tasks.assign") || 
+                           await IsProjectOwnerAsync(task, userId) ||
+                           await IsDepartmentManagerAsync(task, userId);
+            if (!canAssign)
+            {
+                throw new ForbiddenAccessException("Bu göreve kullanıcı atama yetkiniz yok.");
+            }
             
             var oldAssignedNames = task.AssignedUsers.Any() 
                 ? string.Join(", ", task.AssignedUsers.Select(u => u.FullName))
@@ -344,6 +369,32 @@ namespace TaskMngBack.Services
             }
 
             return task;
+        }
+
+        private async Task<bool> IsProjectOwnerAsync(TaskItem task, int userId)
+        {
+            var role = await _projectRepository.GetMemberRoleAsync(task.ProjectId, userId);
+            return role == ProjectMemberRole.Owner;
+        }
+
+        private async Task<bool> IsProjectMemberAsync(TaskItem task, int userId)
+        {
+            var role = await _projectRepository.GetMemberRoleAsync(task.ProjectId, userId);
+            return role != null;
+        }
+
+        private async Task<bool> IsDepartmentManagerAsync(TaskItem task, int userId)
+        {
+            if (task.DepartmentId == null) return false;
+            var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
+            return department?.ManagerId == userId;
+        }
+
+        private async Task<bool> IsDepartmentMemberAsync(TaskItem task, int userId)
+        {
+            if (task.DepartmentId == null) return false;
+            var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
+            return department?.Users.Any(u => u.Id == userId) ?? false;
         }
 
         private static TaskDto MapToDto(TaskItem task)

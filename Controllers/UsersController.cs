@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskMngBack.DTOs.Users;
 using TaskMngBack.Services.Interfaces;
 
@@ -31,6 +32,16 @@ namespace TaskMngBack.Controllers
             return Ok(user);
         }
 
+        [HttpGet("me")]
+        [AllowAnonymous]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> GetOwnProfile()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var user = await _userService.GetOwnProfileAsync(userId);
+            return Ok(user);
+        }
+
         [HttpPost]
         public async Task<ActionResult<UserDto>> Create(CreateUserDto dto)
         {
@@ -42,6 +53,16 @@ namespace TaskMngBack.Controllers
         public async Task<ActionResult<UserDto>> Update(int id, UpdateUserDto dto)
         {
             var user = await _userService.UpdateAsync(id, dto);
+            return Ok(user);
+        }
+
+        [HttpPut("me")]
+        [AllowAnonymous]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> UpdateOwnProfile(UpdateOwnProfileDto dto)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var user = await _userService.UpdateOwnProfileAsync(userId, dto);
             return Ok(user);
         }
 

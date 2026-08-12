@@ -58,9 +58,15 @@ namespace TaskMngBack.Services
             return MapToDto(created);
         }
 
-        public async Task<DepartmentDto> UpdateAsync(int id, UpdateDepartmentDto dto)
+        public async Task<DepartmentDto> UpdateAsync(int id, UpdateDepartmentDto dto, int userId, List<string> permissions)
         {
             var department = await GetDepartmentOrThrowAsync(id);
+
+            var isManager = department.ManagerId == userId;
+            if (!permissions.Contains("departments.manage") && !isManager)
+            {
+                throw new ForbiddenAccessException("Bu işlem için yetkiniz yok.");
+            }
 
             if (dto.ManagerId.HasValue)
             {
@@ -81,9 +87,16 @@ namespace TaskMngBack.Services
             return MapToDto(updated);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int id, int userId, List<string> permissions)
         {
             var department = await GetDepartmentOrThrowAsync(id);
+
+            var isManager = department.ManagerId == userId;
+            if (!permissions.Contains("departments.manage") && !isManager)
+            {
+                throw new ForbiddenAccessException("Bu işlem için yetkiniz yok.");
+            }
+
             await _departmentRepository.DeleteAsync(department);
         }
 

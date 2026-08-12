@@ -177,6 +177,7 @@ namespace TaskMngBack.Data
             var permTasksUpdateAll = Guid.Parse("66666666-6666-6666-6666-666666666666");
             var permTasksDeleteAll = Guid.Parse("77777777-7777-7777-7777-777777777777");
             var permTasksAssign = Guid.Parse("88888888-8888-8888-8888-888888888888");
+            var permRolesManage = Guid.Parse("99999999-9999-9999-9999-999999999999");
 
             modelBuilder.Entity<Permission>().HasData(
                 new Permission { Id = permDepartmentsManage, Key = "departments.manage", Description = "Departman oluşturma/düzenleme/silme" },
@@ -186,7 +187,8 @@ namespace TaskMngBack.Data
                 new Permission { Id = permTasksViewAll, Key = "tasks.view.all", Description = "Tüm görevleri görüntüleme (sahiplik farketmeksizin)" },
                 new Permission { Id = permTasksUpdateAll, Key = "tasks.update.all", Description = "Tüm görevleri güncelleme" },
                 new Permission { Id = permTasksDeleteAll, Key = "tasks.delete.all", Description = "Tüm görevleri silme" },
-                new Permission { Id = permTasksAssign, Key = "tasks.assign", Description = "Görevlere kullanıcı atama" }
+                new Permission { Id = permTasksAssign, Key = "tasks.assign", Description = "Görevlere kullanıcı atama" },
+                new Permission { Id = permRolesManage, Key = "roles.manage", Description = "Rol ve izin tanımlarını yönetme" }
             );
 
             modelBuilder.Entity("RolePermissions").HasData(
@@ -197,7 +199,8 @@ namespace TaskMngBack.Data
                 new { RolesId = adminRoleId, PermissionsId = permTasksViewAll },
                 new { RolesId = adminRoleId, PermissionsId = permTasksUpdateAll },
                 new { RolesId = adminRoleId, PermissionsId = permTasksDeleteAll },
-                new { RolesId = adminRoleId, PermissionsId = permTasksAssign }
+                new { RolesId = adminRoleId, PermissionsId = permTasksAssign },
+                new { RolesId = adminRoleId, PermissionsId = permRolesManage }
             );
 
             base.OnModelCreating(modelBuilder);

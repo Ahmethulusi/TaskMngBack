@@ -32,9 +32,31 @@ namespace TaskMngBack.Services
             return projects.Select(MapToDto).ToList();
         }
 
+        public async Task<List<ProjectDto>> GetAllForUser(int userId, List<string> permissions)
+        {
+            var projects = permissions.Contains("projects.manage")
+                ? await _projectRepository.GetAllAsync()
+                : await _projectRepository.GetByUserAsync(userId);
+
+            return projects.Select(MapToDto).ToList();
+        }
+
         public async Task<ProjectDto> GetByIdAsync(Guid id)
         {
             var project = await GetProjectOrThrowAsync(id);
+            return MapToDto(project);
+        }
+
+        public async Task<ProjectDto> GetByIdForUser(Guid projectId, int userId, List<string> permissions)
+        {
+            var project = await GetProjectOrThrowAsync(projectId);
+
+            if (!permissions.Contains("projects.manage") &&
+                !project.Members.Any(m => m.UserId == userId))
+            {
+                throw new ForbiddenAccessException("Bu projeyi görüntüleme yetkiniz yok.");
+            }
+
             return MapToDto(project);
         }
 
@@ -60,9 +82,15 @@ namespace TaskMngBack.Services
             return MapToDto(created);
         }
 
-        public async Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectDto dto)
+        public async Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectDto dto, int userId, List<string> permissions)
         {
             var project = await GetProjectOrThrowAsync(id);
+
+            var isOwner = project.Members.Any(m => m.UserId == userId && m.Role == ProjectMemberRole.Owner);
+            if (!permissions.Contains("projects.manage") && !isOwner)
+            {
+                throw new ForbiddenAccessException("Bu işlem için yetkiniz yok.");
+            }
 
             var iconKey = ValidateAndGetIconKey(dto.IconKey);
 
@@ -89,9 +117,16 @@ namespace TaskMngBack.Services
             return MapToDto(project);
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, int userId, List<string> permissions)
         {
             var project = await GetProjectOrThrowAsync(id);
+
+            var isOwner = project.Members.Any(m => m.UserId == userId && m.Role == ProjectMemberRole.Owner);
+            if (!permissions.Contains("projects.manage") && !isOwner)
+            {
+                throw new ForbiddenAccessException("Bu işlem için yetkiniz yok.");
+            }
+
             await _projectRepository.DeleteAsync(project);
         }
 

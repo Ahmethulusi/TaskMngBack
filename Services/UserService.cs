@@ -43,6 +43,12 @@ namespace TaskMngBack.Services
             return MapToDto(user);
         }
 
+        public async Task<UserDto> GetOwnProfileAsync(int userId)
+        {
+            var user = await GetUserOrThrowAsync(userId);
+            return MapToDto(user);
+        }
+
         public async Task<UserDto> CreateAsync(CreateUserDto dto)
         {
             if (await _userRepository.EmailExistsAsync(dto.Email))
@@ -50,27 +56,29 @@ namespace TaskMngBack.Services
                 throw new ConflictException("Bu email adresi zaten kayıtlı.");
             }
 
+            if (dto.RoleIds.Count == 0)
+            {
+                throw new BadRequestException("En az bir rol seçilmeli.");
+            }
+
             var departments = await ResolveDepartmentsAsync(dto.DepartmentIds);
+            var roles = await ResolveRolesAsync(dto.RoleIds);
+
+            var legacyRole = DetermineLegacyRole(roles);
 
             var user = new User
             {
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true),
+                Role = legacyRole,
                 MustChangePassword = true,
                 CreatedAt = DateTime.UtcNow,
-                Departments = departments
+                Departments = departments,
+                Roles = roles
             };
 
             await _userRepository.AddAsync(user);
-
-            var role = await _roleRepository.GetByNameAsync(dto.Role);
-            if (role != null)
-            {
-                user.Roles.Add(role);
-                await _userRepository.UpdateAsync(user);
-            }
 
             var created = await GetUserOrThrowAsync(user.Id);
             return MapToDto(created);
@@ -80,9 +88,13 @@ namespace TaskMngBack.Services
         {
             var user = await GetUserOrThrowAsync(id);
 
+            if (dto.RoleIds.Count == 0)
+            {
+                throw new BadRequestException("En az bir rol seçilmeli.");
+            }
+
             user.FullName = dto.FullName;
             user.Email = dto.Email;
-            user.Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true);
 
             var departments = await ResolveDepartmentsAsync(dto.DepartmentIds);
             user.Departments.Clear();
@@ -91,19 +103,40 @@ namespace TaskMngBack.Services
                 user.Departments.Add(department);
             }
 
-            var role = await _roleRepository.GetByNameAsync(dto.Role);
-            if (role is null)
-            {
-                throw new NotFoundException($"'{dto.Role}' isimli rol bulunamadı.");
-            }
+            var roles = await ResolveRolesAsync(dto.RoleIds);
+            var legacyRole = DetermineLegacyRole(roles);
+            user.Role = legacyRole;
 
             user.Roles.Clear();
-            user.Roles.Add(role);
+            foreach (var role in roles)
+            {
+                user.Roles.Add(role);
+            }
 
             await _userRepository.UpdateAsync(user);
 
             var updatedRoles = string.Join(", ", user.Roles.Select(r => r.Name));
             _logger.LogInformation("User {UserId} roles updated to: {Roles}", user.Id, updatedRoles);
+
+            return MapToDto(user);
+        }
+
+        public async Task<UserDto> UpdateOwnProfileAsync(int userId, UpdateOwnProfileDto dto)
+        {
+            var user = await GetUserOrThrowAsync(userId);
+
+            if (user.Email != dto.Email)
+            {
+                if (await _userRepository.EmailExistsForOtherUserAsync(dto.Email, userId))
+                {
+                    throw new ConflictException("Bu email adresi zaten kayıtlı.");
+                }
+            }
+
+            user.FullName = dto.FullName;
+            user.Email = dto.Email;
+
+            await _userRepository.UpdateAsync(user);
 
             return MapToDto(user);
         }
@@ -150,6 +183,35 @@ namespace TaskMngBack.Services
             }
 
             return user;
+        }
+
+        private async Task<List<Role>> ResolveRolesAsync(List<Guid> roleIds)
+        {
+            var distinctIds = roleIds.Distinct().ToList();
+
+            if (distinctIds.Count == 0)
+            {
+                return new List<Role>();
+            }
+
+            var roles = await _roleRepository.GetByIdsAsync(distinctIds);
+
+            if (roles.Count != distinctIds.Count)
+            {
+                throw new NotFoundException("Belirtilen rollerden biri veya birkaçı bulunamadı.");
+            }
+
+            return roles;
+        }
+
+        private static UserRole DetermineLegacyRole(List<Role> roles)
+        {
+            if (roles.Any(r => r.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return UserRole.Admin;
+            }
+
+            return UserRole.User;
         }
 
         private static UserDto MapToDto(User user)

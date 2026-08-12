@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using TaskMngBack.Models.Enums;
 
 namespace TaskMngBack.DTOs.Users
 {
@@ -17,9 +16,8 @@ namespace TaskMngBack.DTOs.Users
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
-        [EnumDataType(typeof(UserRole))]
-        public string Role { get; set; } = string.Empty;
+        [MinLength(1, ErrorMessage = "En az bir rol seçilmeli.")]
+        public List<Guid> RoleIds { get; set; } = new();
 
         public List<int> DepartmentIds { get; set; } = new();
     }

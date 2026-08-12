@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskMngBack.Data;
 using TaskMngBack.Exceptions;
 using TaskMngBack.Models;
+using TaskMngBack.Models.Enums;
 using TaskMngBack.Repositories.Interfaces;
 
 namespace TaskMngBack.Repositories
@@ -22,6 +23,15 @@ namespace TaskMngBack.Repositories
             return _context.Projects
                 .Include(p => p.Members)
                     .ThenInclude(m => m.User)
+                .ToListAsync();
+        }
+
+        public Task<List<Project>> GetByUserAsync(int userId)
+        {
+            return _context.Projects
+                .Include(p => p.Members)
+                    .ThenInclude(m => m.User)
+                .Where(p => p.Members.Any(m => m.UserId == userId))
                 .ToListAsync();
         }
 
@@ -73,6 +83,19 @@ namespace TaskMngBack.Repositories
                 throw new NotFoundException(
                     "Proje bulunamadı. Zaten silinmiş olabilir; lütfen sayfayı yenileyin.");
             }
+        }
+
+        public async Task<ProjectMemberRole?> GetMemberRoleAsync(Guid? projectId, int userId)
+        {
+            if (projectId is null)
+            {
+                return null;
+            }
+
+            var member = await _context.ProjectMembers
+                .FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == userId);
+
+            return member?.Role;
         }
 
         private void LogConcurrencyConflict(DbUpdateConcurrencyException ex)

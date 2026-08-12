@@ -7,6 +7,7 @@ namespace TaskMngBack.Repositories.Interfaces
         Task<User?> GetByEmailAsync(string email);
         Task AddAsync(User user);
         Task<bool> EmailExistsAsync(string email);
+        Task<bool> EmailExistsForOtherUserAsync(string email, int excludeUserId);
 
         Task<List<User>> GetAllAsync();
         Task<User?> GetByIdAsync(int id);

@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskMngBack.DTOs.Projects;
+using TaskMngBack.Extensions;
 using TaskMngBack.Services.Interfaces;
 
 namespace TaskMngBack.Controllers
@@ -20,14 +22,14 @@ namespace TaskMngBack.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ProjectDto>>> GetAll()
         {
-            var projects = await _projectService.GetAllAsync();
+            var projects = await _projectService.GetAllForUser(GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(projects);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ProjectDto>> GetById(Guid id)
         {
-            var project = await _projectService.GetByIdAsync(id);
+            var project = await _projectService.GetByIdForUser(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(project);
         }
 
@@ -39,20 +41,28 @@ namespace TaskMngBack.Controllers
             return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
         }
 
-        [Authorize(Policy = "Permission:projects.manage")]
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<ProjectDto>> Update(Guid id, UpdateProjectDto dto)
         {
-            var project = await _projectService.UpdateAsync(id, dto);
+            var project = await _projectService.UpdateAsync(id, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(project);
         }
 
-        [Authorize(Policy = "Permission:projects.manage")]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _projectService.DeleteAsync(id);
+            await _projectService.DeleteAsync(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return NoContent();
+        }
+
+        private int GetCurrentUserId()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
+        private List<string> GetCurrentUserPermissions()
+        {
+            return User.GetPermissions();
         }
     }
 }

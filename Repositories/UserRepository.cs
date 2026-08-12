@@ -33,6 +33,11 @@ namespace TaskMngBack.Repositories
             return _context.Users.AnyAsync(u => u.Email == email);
         }
 
+        public Task<bool> EmailExistsForOtherUserAsync(string email, int excludeUserId)
+        {
+            return _context.Users.AnyAsync(u => u.Email == email && u.Id != excludeUserId);
+        }
+
         public Task<List<User>> GetAllAsync()
         {
             return _context.Users

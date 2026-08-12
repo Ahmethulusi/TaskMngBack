@@ -7,7 +7,7 @@ namespace TaskMngBack.Services.Interfaces
         Task<List<DepartmentDto>> GetAllAsync();
         Task<DepartmentDto> GetByIdAsync(int id);
         Task<DepartmentDto> CreateAsync(CreateDepartmentDto dto);
-        Task<DepartmentDto> UpdateAsync(int id, UpdateDepartmentDto dto);
-        Task DeleteAsync(int id);
+        Task<DepartmentDto> UpdateAsync(int id, UpdateDepartmentDto dto, int userId, List<string> permissions);
+        Task DeleteAsync(int id, int userId, List<string> permissions);
     }
 }

@@ -22,7 +22,10 @@ namespace TaskMngBack.Repositories
         public Task<List<TaskItem>> GetByUserAsync(int userId)
         {
             return IncludeNavigations(_context.Tasks)
-                .Where(t => t.CreatedByUserId == userId || t.AssignedUsers.Any(u => u.Id == userId))
+                .Where(t => t.CreatedByUserId == userId || 
+                           t.AssignedUsers.Any(u => u.Id == userId) ||
+                           (t.ProjectId != null && t.Project.Members.Any(m => m.UserId == userId)) ||
+                           (t.DepartmentId != null && t.Department.Users.Any(u => u.Id == userId)))
                 .ToListAsync();
         }
 
@@ -71,7 +74,9 @@ namespace TaskMngBack.Repositories
             return query
                 .Include(t => t.StatusDefinition)
                 .Include(t => t.Department)
+                    .ThenInclude(d => d.Users)
                 .Include(t => t.Project)
+                    .ThenInclude(p => p.Members)
                 .Include(t => t.CreatedByUser)
                 .Include(t => t.AssignedUsers)
                 .Include(t => t.Labels);

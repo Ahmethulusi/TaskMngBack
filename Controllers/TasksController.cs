@@ -64,11 +64,10 @@ namespace TaskMngBack.Controllers
             return Ok(task);
         }
 
-        [Authorize(Policy = "Permission:tasks.assign")]
         [HttpPatch("{id:int}/assign")]
         public async Task<ActionResult<TaskDto>> Assign(int id, AssignTaskDto dto)
         {
-            var task = await _taskService.AssignTask(id, dto.AssignedUserIds, GetCurrentUserId());
+            var task = await _taskService.AssignTask(id, dto.AssignedUserIds, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(task);
         }
 

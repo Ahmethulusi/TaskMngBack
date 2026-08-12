@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskMngBack.DTOs.Departments;
+using TaskMngBack.Extensions;
 using TaskMngBack.Services.Interfaces;
 
 namespace TaskMngBack.Controllers
@@ -39,20 +41,28 @@ namespace TaskMngBack.Controllers
             return CreatedAtAction(nameof(GetById), new { id = department.Id }, department);
         }
 
-        [Authorize(Policy = "Permission:departments.manage")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<DepartmentDto>> Update(int id, UpdateDepartmentDto dto)
         {
-            var department = await _departmentService.UpdateAsync(id, dto);
+            var department = await _departmentService.UpdateAsync(id, dto, GetCurrentUserId(), GetCurrentUserPermissions());
             return Ok(department);
         }
 
-        [Authorize(Policy = "Permission:departments.manage")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _departmentService.DeleteAsync(id);
+            await _departmentService.DeleteAsync(id, GetCurrentUserId(), GetCurrentUserPermissions());
             return NoContent();
+        }
+
+        private int GetCurrentUserId()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
+        private List<string> GetCurrentUserPermissions()
+        {
+            return User.GetPermissions();
         }
     }
 }
