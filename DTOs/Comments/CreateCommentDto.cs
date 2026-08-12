@@ -7,5 +7,7 @@ namespace TaskMngBack.DTOs.Comments
         [Required]
         [MaxLength(2000)]
         public string Content { get; set; } = string.Empty;
+
+        public List<Guid> AttachmentIds { get; set; } = new();
     }
 }

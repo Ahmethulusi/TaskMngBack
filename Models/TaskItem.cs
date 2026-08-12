@@ -28,5 +28,6 @@ namespace TaskMngBack.Models
         public ICollection<Label> Labels { get; set; } = new List<Label>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
+        public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
     }
 }

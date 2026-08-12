@@ -11,5 +11,6 @@ namespace TaskMngBack.Models
 
         public TaskItem Task { get; set; } = null!;
         public User User { get; set; } = null!;
+        public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
     }
 }

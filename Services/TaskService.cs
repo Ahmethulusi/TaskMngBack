@@ -18,6 +18,9 @@ namespace TaskMngBack.Services
         private readonly IActivityLogService _activityLogService;
         private readonly IProjectRepository _projectRepository;
         private readonly IDepartmentRepository _departmentRepository;
+        private readonly IAttachmentRepository _attachmentRepository;
+        private readonly IStorageService _storageService;
+        private readonly ILogger<TaskService> _logger;
 
         public TaskService(
             ITaskRepository taskRepository,
@@ -26,7 +29,10 @@ namespace TaskMngBack.Services
             ILabelRepository labelRepository,
             IActivityLogService activityLogService,
             IProjectRepository projectRepository,
-            IDepartmentRepository departmentRepository)
+            IDepartmentRepository departmentRepository,
+            IAttachmentRepository attachmentRepository,
+            IStorageService storageService,
+            ILogger<TaskService> logger)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
@@ -35,6 +41,9 @@ namespace TaskMngBack.Services
             _activityLogService = activityLogService;
             _projectRepository = projectRepository;
             _departmentRepository = departmentRepository;
+            _attachmentRepository = attachmentRepository;
+            _storageService = storageService;
+            _logger = logger;
         }
 
         public async Task<List<TaskDto>> GetAllForUser(int userId, List<string> permissions)
@@ -271,6 +280,19 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevi silme yetkiniz yok.");
             }
 
+            var attachments = await _attachmentRepository.GetByTaskIdIncludingCommentsAsync(taskId);
+            foreach (var attachment in attachments)
+            {
+                try
+                {
+                    await _storageService.DeleteObjectAsync(attachment.StorageKey);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "R2'den silinemedi: {StorageKey}", attachment.StorageKey);
+                }
+            }
+
             await _taskRepository.DeleteAsync(task);
         }
 
@@ -430,7 +452,8 @@ namespace TaskMngBack.Services
                         Id = l.Id,
                         Name = l.Name
                     })
-                    .ToList()
+                    .ToList(),
+                AttachmentCount = task.Attachments.Count(a => a.CommentId == null)
             };
         }
     }

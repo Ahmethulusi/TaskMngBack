@@ -18,6 +18,7 @@ namespace TaskMngBack.Data
         public DbSet<TaskStatusDefinition> TaskStatuses => Set<TaskStatusDefinition>();
         public DbSet<Label> Labels => Set<Label>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<Permission> Permissions => Set<Permission>();
@@ -84,6 +85,24 @@ namespace TaskMngBack.Data
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Attachment>()
+                .HasOne(a => a.Task)
+                .WithMany(t => t.Attachments)
+                .HasForeignKey(a => a.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Attachment>()
+                .HasOne(a => a.Comment)
+                .WithMany(c => c.Attachments)
+                .HasForeignKey(a => a.CommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Attachment>()
+                .HasOne(a => a.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ActivityLog>()
                 .HasOne(a => a.Task)

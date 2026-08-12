@@ -79,7 +79,8 @@ namespace TaskMngBack.Repositories
                     .ThenInclude(p => p.Members)
                 .Include(t => t.CreatedByUser)
                 .Include(t => t.AssignedUsers)
-                .Include(t => t.Labels);
+                .Include(t => t.Labels)
+                .Include(t => t.Attachments);
         }
     }
 }

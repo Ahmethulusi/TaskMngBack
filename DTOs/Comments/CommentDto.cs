@@ -1,3 +1,5 @@
+using TaskMngBack.DTOs.Attachments;
+
 namespace TaskMngBack.DTOs.Comments
 {
     public class CommentDto
@@ -9,5 +11,6 @@ namespace TaskMngBack.DTOs.Comments
         public string Content { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<AttachmentDto> Attachments { get; set; } = new();
     }
 }

@@ -18,6 +18,8 @@ namespace TaskMngBack.Repositories
         {
             return _context.Comments
                 .Include(c => c.User)
+                .Include(c => c.Attachments)
+                    .ThenInclude(a => a.UploadedByUser)
                 .Where(c => c.TaskId == taskId)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync();
@@ -27,6 +29,8 @@ namespace TaskMngBack.Repositories
         {
             return _context.Comments
                 .Include(c => c.User)
+                .Include(c => c.Attachments)
+                    .ThenInclude(a => a.UploadedByUser)
                 .FirstOrDefaultAsync(c => c.Id == id);
         }
 

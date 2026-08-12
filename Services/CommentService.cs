@@ -1,3 +1,4 @@
+using TaskMngBack.DTOs.Attachments;
 using TaskMngBack.DTOs.Comments;
 using TaskMngBack.Exceptions;
 using TaskMngBack.Models;
@@ -10,13 +11,19 @@ namespace TaskMngBack.Services
     {
         private readonly ICommentRepository _commentRepository;
         private readonly ITaskRepository _taskRepository;
+        private readonly IAttachmentRepository _attachmentRepository;
+        private readonly IStorageService _storageService;
 
         public CommentService(
             ICommentRepository commentRepository,
-            ITaskRepository taskRepository)
+            ITaskRepository taskRepository,
+            IAttachmentRepository attachmentRepository,
+            IStorageService storageService)
         {
             _commentRepository = commentRepository;
             _taskRepository = taskRepository;
+            _attachmentRepository = attachmentRepository;
+            _storageService = storageService;
         }
 
         public async Task<List<CommentDto>> GetForTask(int taskId, int userId, List<string> permissions)
@@ -31,7 +38,14 @@ namespace TaskMngBack.Services
             }
 
             var comments = await _commentRepository.GetByTaskIdAsync(taskId);
-            return comments.Select(MapToDto).ToList();
+            var dtos = new List<CommentDto>(comments.Count);
+
+            foreach (var comment in comments)
+            {
+                dtos.Add(await MapToDtoAsync(comment));
+            }
+
+            return dtos;
         }
 
         public async Task<CommentDto> CreateAsync(int taskId, CreateCommentDto dto, int userId, List<string> permissions)
@@ -56,8 +70,13 @@ namespace TaskMngBack.Services
 
             await _commentRepository.AddAsync(comment);
 
+            if (dto.AttachmentIds.Count > 0)
+            {
+                await _attachmentRepository.ClaimForCommentAsync(dto.AttachmentIds, comment.Id, taskId, userId);
+            }
+
             var created = await GetCommentOrThrowAsync(comment.Id);
-            return MapToDto(created);
+            return await MapToDtoAsync(created);
         }
 
         public async Task<CommentDto> UpdateAsync(Guid commentId, UpdateCommentDto dto, int userId)
@@ -75,7 +94,7 @@ namespace TaskMngBack.Services
             await _commentRepository.UpdateAsync(comment);
 
             var updated = await GetCommentOrThrowAsync(commentId);
-            return MapToDto(updated);
+            return await MapToDtoAsync(updated);
         }
 
         public async Task DeleteAsync(Guid commentId, int userId, List<string> permissions)
@@ -114,8 +133,26 @@ namespace TaskMngBack.Services
             return comment;
         }
 
-        private static CommentDto MapToDto(Comment comment)
+        private async Task<CommentDto> MapToDtoAsync(Comment comment)
         {
+            var attachments = comment.Attachments ?? new List<Attachment>();
+            var attachmentDtos = new List<AttachmentDto>(attachments.Count);
+
+            foreach (var attachment in attachments)
+            {
+                attachmentDtos.Add(new AttachmentDto
+                {
+                    Id = attachment.Id,
+                    FileName = attachment.FileName,
+                    FileSize = attachment.FileSize,
+                    ContentType = attachment.ContentType,
+                    UploadedByUserId = attachment.UploadedByUserId,
+                    UploadedByUserName = attachment.UploadedByUser?.FullName ?? string.Empty,
+                    CreatedAt = attachment.CreatedAt,
+                    DownloadUrl = await _storageService.GeneratePresignedDownloadUrlAsync(attachment.StorageKey)
+                });
+            }
+
             return new CommentDto
             {
                 Id = comment.Id,
@@ -124,7 +161,8 @@ namespace TaskMngBack.Services
                 UserFullName = comment.User?.FullName ?? string.Empty,
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
-                UpdatedAt = comment.UpdatedAt
+                UpdatedAt = comment.UpdatedAt,
+                Attachments = attachmentDtos
             };
         }
     }
