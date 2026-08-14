@@ -12,5 +12,6 @@ namespace TaskMngBack.DTOs.Statuses
         public string ColorKey { get; set; } = string.Empty;
 
         public bool IsDefault { get; set; } = false;
+        public bool IsCompletionStatus { get; set; } = false;
     }
 }

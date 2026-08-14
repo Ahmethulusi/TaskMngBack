@@ -20,6 +20,7 @@ namespace TaskMngBack.Data
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+        public DbSet<TaskDependency> TaskDependencies => Set<TaskDependency>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<Permission> Permissions => Set<Permission>();
 
@@ -73,6 +74,28 @@ namespace TaskMngBack.Data
                 .WithMany()
                 .HasForeignKey(t => t.StatusId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TaskItem>()
+                .HasOne(t => t.ParentTask)
+                .WithMany(t => t.Subtasks)
+                .HasForeignKey(t => t.ParentTaskId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<TaskDependency>()
+                .HasOne(d => d.Task)
+                .WithMany(t => t.Dependencies)
+                .HasForeignKey(d => d.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskDependency>()
+                .HasOne(d => d.DependsOnTask)
+                .WithMany(t => t.Blocking)
+                .HasForeignKey(d => d.DependsOnTaskId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TaskDependency>()
+                .HasIndex(d => new { d.TaskId, d.DependsOnTaskId })
+                .IsUnique();
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Task)
@@ -165,7 +188,8 @@ namespace TaskMngBack.Data
                     Name = "Tamamlandı",
                     DisplayOrder = 3,
                     ColorKey = "green",
-                    IsDefault = false
+                    IsDefault = false,
+                    IsCompletionStatus = true
                 }
             );
 

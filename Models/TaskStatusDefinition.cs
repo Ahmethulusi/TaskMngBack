@@ -7,5 +7,6 @@ namespace TaskMngBack.Models
         public int DisplayOrder { get; set; }
         public string ColorKey { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
+        public bool IsCompletionStatus { get; set; } = false;
     }
 }

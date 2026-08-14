@@ -16,5 +16,8 @@ namespace TaskMngBack.DTOs.Statuses
 
         [Required]
         public bool IsDefault { get; set; }
+
+        [Required]
+        public bool IsCompletionStatus { get; set; }
     }
 }

@@ -12,5 +12,7 @@ namespace TaskMngBack.Services.Interfaces
         Task<TaskDto> UpdateLabels(int taskId, UpdateTaskLabelsDto dto, int userId, List<string> permissions);
         Task Delete(int taskId, int userId, List<string> permissions);
         Task<TaskDto> AssignTask(int taskId, List<int> assignedUserIds, int userId, List<string> permissions);
+        Task AddDependency(int taskId, AddDependencyDto dto, int userId, List<string> permissions);
+        Task RemoveDependency(int taskId, int dependsOnTaskId, int userId, List<string> permissions);
     }
 }

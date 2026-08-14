@@ -40,6 +40,12 @@ namespace TaskMngBack.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddAsync(TaskDependency dependency)
+        {
+            await _context.TaskDependencies.AddAsync(dependency);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task UpdateAsync(TaskItem task)
         {
             _context.Tasks.Update(task);
@@ -50,6 +56,57 @@ namespace TaskMngBack.Repositories
         {
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(TaskDependency dependency)
+        {
+            _context.TaskDependencies.Remove(dependency);
+            await _context.SaveChangesAsync();
+        }
+
+        public Task<TaskDependency?> GetDependencyAsync(int taskId, int dependsOnTaskId)
+        {
+            return _context.TaskDependencies.FirstOrDefaultAsync(d =>
+                d.TaskId == taskId && d.DependsOnTaskId == dependsOnTaskId);
+        }
+
+        public async Task<bool> WouldCreateCycleAsync(int taskId, int dependsOnTaskId)
+        {
+            var edges = await _context.TaskDependencies
+                .AsNoTracking()
+                .Select(d => new { d.TaskId, d.DependsOnTaskId })
+                .ToListAsync();
+
+            var dependenciesByTask = edges
+                .GroupBy(d => d.TaskId)
+                .ToDictionary(g => g.Key, g => g.Select(d => d.DependsOnTaskId).ToList());
+
+            var pending = new Stack<int>();
+            var visited = new HashSet<int>();
+            pending.Push(dependsOnTaskId);
+
+            while (pending.Count > 0)
+            {
+                var currentTaskId = pending.Pop();
+
+                if (currentTaskId == taskId)
+                {
+                    return true;
+                }
+
+                if (!visited.Add(currentTaskId) ||
+                    !dependenciesByTask.TryGetValue(currentTaskId, out var dependencies))
+                {
+                    continue;
+                }
+
+                foreach (var dependencyId in dependencies)
+                {
+                    pending.Push(dependencyId);
+                }
+            }
+
+            return false;
         }
 
         public Task<bool> HasTasksForUserAsync(int userId)
@@ -80,7 +137,16 @@ namespace TaskMngBack.Repositories
                 .Include(t => t.CreatedByUser)
                 .Include(t => t.AssignedUsers)
                 .Include(t => t.Labels)
-                .Include(t => t.Attachments);
+                .Include(t => t.Attachments)
+                .Include(t => t.ParentTask)
+                .Include(t => t.Subtasks)
+                    .ThenInclude(s => s.StatusDefinition)
+                .Include(t => t.Dependencies)
+                    .ThenInclude(d => d.DependsOnTask)
+                        .ThenInclude(t => t.StatusDefinition)
+                .Include(t => t.Blocking)
+                    .ThenInclude(d => d.Task)
+                        .ThenInclude(t => t.StatusDefinition);
         }
     }
 }

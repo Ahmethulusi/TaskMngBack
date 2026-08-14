@@ -22,11 +22,19 @@ namespace TaskMngBack.DTOs.Tasks
         public Guid? ProjectId { get; set; }
         public string? ProjectName { get; set; }
 
+        public int? ParentTaskId { get; set; }
+        public string? ParentTaskTitle { get; set; }
+        public List<SubtaskSummaryDto> Subtasks { get; set; } = new();
+        public SubtaskProgressDto? SubtaskProgress { get; set; }
+
         public int CreatedByUserId { get; set; }
         public string CreatedByUserName { get; set; } = string.Empty;
 
         public List<UserSummaryDto> AssignedUsers { get; set; } = new();
         public List<LabelDto> Labels { get; set; } = new();
+        public List<TaskDependencyDto> BlockedBy { get; set; } = new();
+        public List<TaskDependencyDto> Blocks { get; set; } = new();
+        public bool IsBlocked { get; set; }
         public int CommentCount { get; set; }
         public int AttachmentCount { get; set; }
     }

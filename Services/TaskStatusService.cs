@@ -45,6 +45,7 @@ namespace TaskMngBack.Services
                 Name = dto.Name,
                 ColorKey = dto.ColorKey,
                 IsDefault = dto.IsDefault,
+                IsCompletionStatus = dto.IsCompletionStatus,
                 DisplayOrder = maxDisplayOrder + 1
             };
 
@@ -69,6 +70,7 @@ namespace TaskMngBack.Services
             status.ColorKey = dto.ColorKey;
             status.DisplayOrder = dto.DisplayOrder;
             status.IsDefault = dto.IsDefault;
+            status.IsCompletionStatus = dto.IsCompletionStatus;
 
             await _taskStatusRepository.UpdateAsync(status);
 
@@ -131,7 +133,8 @@ namespace TaskMngBack.Services
                 Name = status.Name,
                 DisplayOrder = status.DisplayOrder,
                 ColorKey = status.ColorKey,
-                IsDefault = status.IsDefault
+                IsDefault = status.IsDefault,
+                IsCompletionStatus = status.IsCompletionStatus
             };
         }
     }

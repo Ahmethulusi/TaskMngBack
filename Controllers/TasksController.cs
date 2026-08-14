@@ -71,6 +71,28 @@ namespace TaskMngBack.Controllers
             return Ok(task);
         }
 
+        [HttpPost("{taskId:int}/dependencies")]
+        public async Task<IActionResult> AddDependency(int taskId, AddDependencyDto dto)
+        {
+            await _taskService.AddDependency(
+                taskId,
+                dto,
+                GetCurrentUserId(),
+                GetCurrentUserPermissions());
+            return NoContent();
+        }
+
+        [HttpDelete("{taskId:int}/dependencies/{dependsOnTaskId:int}")]
+        public async Task<IActionResult> RemoveDependency(int taskId, int dependsOnTaskId)
+        {
+            await _taskService.RemoveDependency(
+                taskId,
+                dependsOnTaskId,
+                GetCurrentUserId(),
+                GetCurrentUserPermissions());
+            return NoContent();
+        }
+
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

@@ -21,5 +21,7 @@ namespace TaskMngBack.DTOs.Tasks
         public int? DepartmentId { get; set; }
 
         public Guid? ProjectId { get; set; }
+
+        public int? ParentTaskId { get; set; }
     }
 }

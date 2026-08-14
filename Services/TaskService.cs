@@ -84,6 +84,7 @@ namespace TaskMngBack.Services
         public async Task<TaskDto> Create(CreateTaskDto dto, int userId, List<string> permissions)
         {
             var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, permissions);
+            await ValidateParentTaskAsync(dto.ParentTaskId);
 
             var defaultStatus = await _taskStatusRepository.GetDefaultAsync();
             if (defaultStatus is null)
@@ -100,6 +101,7 @@ namespace TaskMngBack.Services
                 DueDate = dto.DueDate,
                 DepartmentId = dto.DepartmentId,
                 ProjectId = dto.ProjectId,
+                ParentTaskId = dto.ParentTaskId,
                 CreatedByUserId = userId,
                 AssignedUsers = assignedUsers,
                 CreatedAt = DateTime.UtcNow
@@ -128,6 +130,8 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu görevi güncelleme yetkiniz yok.");
             }
 
+            await ValidateParentTaskAsync(dto.ParentTaskId, task);
+
             var oldTitle = task.Title;
             var oldDescription = task.Description;
             var oldPriority = task.Priority;
@@ -145,6 +149,7 @@ namespace TaskMngBack.Services
             task.DueDate = dto.DueDate;
             task.DepartmentId = dto.DepartmentId;
             task.ProjectId = dto.ProjectId;
+            task.ParentTaskId = dto.ParentTaskId;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
@@ -333,6 +338,59 @@ namespace TaskMngBack.Services
             return taskDto;
         }
 
+        public async Task AddDependency(
+            int taskId,
+            AddDependencyDto dto,
+            int userId,
+            List<string> permissions)
+        {
+            var task = await GetTaskOrThrowAsync(taskId);
+            await EnsureCanUpdateTaskAsync(task, userId, permissions);
+
+            if (taskId == dto.DependsOnTaskId)
+            {
+                throw new BadRequestException("Bir görev kendisine bağımlı olamaz.");
+            }
+
+            await GetTaskOrThrowAsync(dto.DependsOnTaskId);
+
+            if (await _taskRepository.GetDependencyAsync(taskId, dto.DependsOnTaskId) is not null)
+            {
+                throw new ConflictException("Bu bağımlılık zaten mevcut.");
+            }
+
+            if (await _taskRepository.WouldCreateCycleAsync(taskId, dto.DependsOnTaskId))
+            {
+                throw new BadRequestException("Bu bağımlılık döngüsel bir ilişki oluşturur.");
+            }
+
+            await _taskRepository.AddAsync(new TaskDependency
+            {
+                Id = Guid.NewGuid(),
+                TaskId = taskId,
+                DependsOnTaskId = dto.DependsOnTaskId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        public async Task RemoveDependency(
+            int taskId,
+            int dependsOnTaskId,
+            int userId,
+            List<string> permissions)
+        {
+            var task = await GetTaskOrThrowAsync(taskId);
+            await EnsureCanUpdateTaskAsync(task, userId, permissions);
+
+            var dependency = await _taskRepository.GetDependencyAsync(taskId, dependsOnTaskId);
+            if (dependency is null)
+            {
+                throw new NotFoundException("Belirtilen görev bağımlılığı bulunamadı.");
+            }
+
+            await _taskRepository.DeleteAsync(dependency);
+        }
+
         private async Task<List<User>> ResolveAssignedUsersAsync(List<int> assignedUserIds, int userId, List<string> permissions)
         {
             var distinctIds = assignedUserIds.Distinct().ToList();
@@ -393,6 +451,41 @@ namespace TaskMngBack.Services
             return task;
         }
 
+        private async Task ValidateParentTaskAsync(int? parentTaskId, TaskItem? currentTask = null)
+        {
+            if (!parentTaskId.HasValue)
+            {
+                return;
+            }
+
+            if (currentTask?.Id == parentTaskId.Value)
+            {
+                throw new BadRequestException("Bir görev kendisinin alt görevi olamaz.");
+            }
+
+            var parentTask = await _taskRepository.GetByIdAsync(parentTaskId.Value);
+            if (parentTask is null)
+            {
+                throw new NotFoundException($"Id'si {parentTaskId.Value} olan üst görev bulunamadı.");
+            }
+
+            if (parentTask.ParentTaskId.HasValue || currentTask?.Subtasks.Count > 0)
+            {
+                throw new BadRequestException("Bir alt görevin alt görevi olamaz.");
+            }
+        }
+
+        private async Task EnsureCanUpdateTaskAsync(TaskItem task, int userId, List<string> permissions)
+        {
+            if (!permissions.Contains("tasks.update.all") &&
+                task.CreatedByUserId != userId &&
+                !await IsProjectOwnerAsync(task, userId) &&
+                !await IsDepartmentManagerAsync(task, userId))
+            {
+                throw new ForbiddenAccessException("Bu görevi güncelleme yetkiniz yok.");
+            }
+        }
+
         private async Task<bool> IsProjectOwnerAsync(TaskItem task, int userId)
         {
             var role = await _projectRepository.GetMemberRoleAsync(task.ProjectId, userId);
@@ -421,6 +514,28 @@ namespace TaskMngBack.Services
 
         private static TaskDto MapToDto(TaskItem task)
         {
+            var blockedBy = task.Dependencies
+                .Select(d => new TaskDependencyDto
+                {
+                    TaskId = d.DependsOnTaskId,
+                    TaskTitle = d.DependsOnTask?.Title ?? string.Empty,
+                    StatusName = d.DependsOnTask?.StatusDefinition?.Name ?? string.Empty,
+                    StatusColorKey = d.DependsOnTask?.StatusDefinition?.ColorKey ?? string.Empty,
+                    IsCompletionStatus = d.DependsOnTask?.StatusDefinition?.IsCompletionStatus ?? false
+                })
+                .ToList();
+
+            var blocks = task.Blocking
+                .Select(d => new TaskDependencyDto
+                {
+                    TaskId = d.TaskId,
+                    TaskTitle = d.Task?.Title ?? string.Empty,
+                    StatusName = d.Task?.StatusDefinition?.Name ?? string.Empty,
+                    StatusColorKey = d.Task?.StatusDefinition?.ColorKey ?? string.Empty,
+                    IsCompletionStatus = d.Task?.StatusDefinition?.IsCompletionStatus ?? false
+                })
+                .ToList();
+
             return new TaskDto
             {
                 Id = task.Id,
@@ -437,6 +552,26 @@ namespace TaskMngBack.Services
                 DepartmentName = task.Department?.Name,
                 ProjectId = task.ProjectId,
                 ProjectName = task.Project?.Name,
+                ParentTaskId = task.ParentTaskId,
+                ParentTaskTitle = task.ParentTask?.Title,
+                Subtasks = task.Subtasks
+                    .Select(s => new SubtaskSummaryDto
+                    {
+                        Id = s.Id,
+                        Title = s.Title,
+                        StatusName = s.StatusDefinition?.Name ?? string.Empty,
+                        StatusColorKey = s.StatusDefinition?.ColorKey ?? string.Empty,
+                        IsCompletionStatus = s.StatusDefinition?.IsCompletionStatus ?? false
+                    })
+                    .ToList(),
+                SubtaskProgress = task.ParentTaskId == null && task.Subtasks.Count > 0
+                    ? new SubtaskProgressDto
+                    {
+                        TotalCount = task.Subtasks.Count,
+                        CompletedCount = task.Subtasks.Count(s =>
+                            s.StatusDefinition?.IsCompletionStatus == true)
+                    }
+                    : null,
                 CreatedByUserId = task.CreatedByUserId,
                 CreatedByUserName = task.CreatedByUser?.FullName ?? string.Empty,
                 AssignedUsers = task.AssignedUsers
@@ -453,6 +588,9 @@ namespace TaskMngBack.Services
                         Name = l.Name
                     })
                     .ToList(),
+                BlockedBy = blockedBy,
+                Blocks = blocks,
+                IsBlocked = blockedBy.Any(d => !d.IsCompletionStatus),
                 AttachmentCount = task.Attachments.Count(a => a.CommentId == null)
             };
         }
