@@ -23,6 +23,26 @@ namespace TaskMngBack.Repositories
                 .ToListAsync();
         }
 
+        public Task<List<ActivityLog>> GetByTaskIdsAsync(List<int> taskIds, int limit)
+        {
+            return _context.ActivityLogs
+                .Include(a => a.User)
+                .Include(a => a.Task)
+                .Where(a => taskIds.Contains(a.TaskId))
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        public Task<List<ActivityLog>> GetCompletionLogsAsync(List<int> taskIds, DateTime since)
+        {
+            return _context.ActivityLogs
+                .Where(a => taskIds.Contains(a.TaskId)
+                    && a.FieldName == "Status"
+                    && a.CreatedAt >= since)
+                .ToListAsync();
+        }
+
         public async Task AddAsync(ActivityLog activityLog)
         {
             await _context.ActivityLogs.AddAsync(activityLog);

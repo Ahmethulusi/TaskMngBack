@@ -14,15 +14,21 @@ namespace TaskMngBack.Services
     {
         private readonly IProjectRepository _projectRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ITaskRepository _taskRepository;
+        private readonly IActivityLogRepository _activityLogRepository;
         private readonly AppDbContext _context;
 
         public ProjectService(
             IProjectRepository projectRepository,
             IUserRepository userRepository,
+            ITaskRepository taskRepository,
+            IActivityLogRepository activityLogRepository,
             AppDbContext context)
         {
             _projectRepository = projectRepository;
             _userRepository = userRepository;
+            _taskRepository = taskRepository;
+            _activityLogRepository = activityLogRepository;
             _context = context;
         }
 
@@ -58,6 +64,37 @@ namespace TaskMngBack.Services
             }
 
             return MapToDto(project);
+        }
+
+        public async Task<List<ProjectActivityItemDto>> GetActivity(Guid projectId, int userId, List<string> permissions)
+        {
+            var project = await GetProjectOrThrowAsync(projectId);
+
+            if (!permissions.Contains("projects.manage") &&
+                !project.Members.Any(m => m.UserId == userId))
+            {
+                throw new ForbiddenAccessException("Bu projeyi görüntüleme yetkiniz yok.");
+            }
+
+            var taskIds = await _taskRepository.GetTaskIdsByProjectAsync(projectId);
+            if (taskIds.Count == 0)
+            {
+                return new List<ProjectActivityItemDto>();
+            }
+
+            var logs = await _activityLogRepository.GetByTaskIdsAsync(taskIds, 20);
+
+            return logs.Select(log => new ProjectActivityItemDto
+            {
+                TaskId = log.TaskId,
+                TaskTitle = log.Task?.Title ?? string.Empty,
+                UserId = log.UserId,
+                UserFullName = log.User?.FullName ?? string.Empty,
+                FieldName = log.FieldName,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                CreatedAt = log.CreatedAt
+            }).ToList();
         }
 
         public async Task<ProjectDto> CreateAsync(CreateProjectDto dto)

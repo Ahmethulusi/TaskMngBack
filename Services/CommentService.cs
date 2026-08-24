@@ -13,17 +13,20 @@ namespace TaskMngBack.Services
         private readonly ITaskRepository _taskRepository;
         private readonly IAttachmentRepository _attachmentRepository;
         private readonly IStorageService _storageService;
+        private readonly INotificationService _notificationService;
 
         public CommentService(
             ICommentRepository commentRepository,
             ITaskRepository taskRepository,
             IAttachmentRepository attachmentRepository,
-            IStorageService storageService)
+            IStorageService storageService,
+            INotificationService notificationService)
         {
             _commentRepository = commentRepository;
             _taskRepository = taskRepository;
             _attachmentRepository = attachmentRepository;
             _storageService = storageService;
+            _notificationService = notificationService;
         }
 
         public async Task<List<CommentDto>> GetForTask(int taskId, int userId, List<string> permissions)
@@ -76,6 +79,7 @@ namespace TaskMngBack.Services
             }
 
             var created = await GetCommentOrThrowAsync(comment.Id);
+            await NotifyNewCommentAsync(task, userId);
             return await MapToDtoAsync(created);
         }
 
@@ -119,6 +123,25 @@ namespace TaskMngBack.Services
             }
 
             return task;
+        }
+
+        private async Task NotifyNewCommentAsync(TaskItem task, int commenterUserId)
+        {
+            var recipientIds = task.AssignedUsers
+                .Select(u => u.Id)
+                .Append(task.CreatedByUserId)
+                .Distinct()
+                .Where(id => id != commenterUserId);
+
+            foreach (var recipientId in recipientIds)
+            {
+                await _notificationService.NotifyAsync(
+                    recipientId,
+                    "NewComment",
+                    "Yeni yorum",
+                    $"'{task.Title}' görevine yeni bir yorum eklendi.",
+                    task.Id);
+            }
         }
 
         private async Task<Comment> GetCommentOrThrowAsync(Guid commentId)

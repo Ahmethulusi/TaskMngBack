@@ -20,6 +20,7 @@ namespace TaskMngBack.Data
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+        public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<TaskDependency> TaskDependencies => Set<TaskDependency>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<Permission> Permissions => Set<Permission>();
@@ -138,6 +139,28 @@ namespace TaskMngBack.Data
                 .WithMany()
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasMaxLength(50);
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Title)
+                .HasMaxLength(200);
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Message)
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.RelatedTask)
+                .WithMany()
+                .HasForeignKey(n => n.RelatedTaskId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Role>()
                 .HasIndex(r => r.Name)

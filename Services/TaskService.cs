@@ -20,6 +20,7 @@ namespace TaskMngBack.Services
         private readonly IDepartmentRepository _departmentRepository;
         private readonly IAttachmentRepository _attachmentRepository;
         private readonly IStorageService _storageService;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<TaskService> _logger;
 
         public TaskService(
@@ -32,6 +33,7 @@ namespace TaskMngBack.Services
             IDepartmentRepository departmentRepository,
             IAttachmentRepository attachmentRepository,
             IStorageService storageService,
+            INotificationService notificationService,
             ILogger<TaskService> logger)
         {
             _taskRepository = taskRepository;
@@ -43,6 +45,7 @@ namespace TaskMngBack.Services
             _departmentRepository = departmentRepository;
             _attachmentRepository = attachmentRepository;
             _storageService = storageService;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -114,6 +117,12 @@ namespace TaskMngBack.Services
             var created = await GetTaskOrThrowAsync(task.Id);
             var taskDto = MapToDto(created);
             taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(created.Id);
+
+            await NotifyNewlyAssignedUsersAsync(
+                created.Title,
+                created.Id,
+                created.AssignedUsers.Select(u => u.Id),
+                userId);
 
             return taskDto;
         }
@@ -313,6 +322,8 @@ namespace TaskMngBack.Services
                 throw new ForbiddenAccessException("Bu göreve kullanıcı atama yetkiniz yok.");
             }
             
+            var previousAssignedIds = task.AssignedUsers.Select(u => u.Id).ToHashSet();
+
             var oldAssignedNames = task.AssignedUsers.Any() 
                 ? string.Join(", ", task.AssignedUsers.Select(u => u.FullName))
                 : "Kimse yok";
@@ -334,6 +345,12 @@ namespace TaskMngBack.Services
             var updated = await GetTaskOrThrowAsync(taskId);
             var taskDto = MapToDto(updated);
             taskDto.CommentCount = await _taskRepository.GetCommentCountAsync(taskId);
+
+            await NotifyNewlyAssignedUsersAsync(
+                updated.Title,
+                updated.Id,
+                assignedUsers.Select(u => u.Id).Where(id => !previousAssignedIds.Contains(id)),
+                userId);
 
             return taskDto;
         }
@@ -475,6 +492,23 @@ namespace TaskMngBack.Services
             }
         }
 
+        private async Task NotifyNewlyAssignedUsersAsync(
+            string taskTitle,
+            int taskId,
+            IEnumerable<int> newlyAssignedUserIds,
+            int actorUserId)
+        {
+            foreach (var assignedUserId in newlyAssignedUserIds.Where(id => id != actorUserId))
+            {
+                await _notificationService.NotifyAsync(
+                    assignedUserId,
+                    "TaskAssigned",
+                    "Yeni görev ataması",
+                    $"'{taskTitle}' görevine atandınız.",
+                    taskId);
+            }
+        }
+
         private async Task EnsureCanUpdateTaskAsync(TaskItem task, int userId, List<string> permissions)
         {
             if (!permissions.Contains("tasks.update.all") &&
@@ -536,6 +570,20 @@ namespace TaskMngBack.Services
                 })
                 .ToList();
 
+            var isOverdue = task.DueDate.HasValue
+                && task.DueDate.Value.Date < DateTime.UtcNow.Date
+                && !task.StatusDefinition.IsCompletionStatus;
+
+            string? dueUrgency = null;
+            if (task.DueDate.HasValue && !task.StatusDefinition.IsCompletionStatus && !isOverdue)
+            {
+                var daysUntilDue = (task.DueDate.Value.Date - DateTime.UtcNow.Date).Days;
+                if (daysUntilDue == 1)
+                    dueUrgency = "Tomorrow";
+                else if (daysUntilDue >= 0 && daysUntilDue <= 7)
+                    dueUrgency = "Soon";
+            }
+
             return new TaskDto
             {
                 Id = task.Id,
@@ -544,10 +592,13 @@ namespace TaskMngBack.Services
                 StatusId = task.StatusId,
                 StatusName = task.StatusDefinition?.Name ?? string.Empty,
                 StatusColorKey = task.StatusDefinition?.ColorKey ?? string.Empty,
+                IsCompletionStatus = task.StatusDefinition?.IsCompletionStatus ?? false,
                 Priority = task.Priority.ToString(),
                 CreatedAt = task.CreatedAt,
                 UpdatedAt = task.UpdatedAt,
                 DueDate = task.DueDate,
+                IsOverdue = isOverdue,
+                DueUrgency = dueUrgency,
                 DepartmentId = task.DepartmentId,
                 DepartmentName = task.Department?.Name,
                 ProjectId = task.ProjectId,

@@ -6,6 +6,7 @@ namespace TaskMngBack.Repositories.Interfaces
     {
         Task<List<TaskItem>> GetAllAsync();
         Task<List<TaskItem>> GetByUserAsync(int userId);
+        Task<List<int>> GetTaskIdsByProjectAsync(Guid projectId);
         Task<TaskItem?> GetByIdAsync(int id);
         Task AddAsync(TaskItem task);
         Task AddAsync(TaskDependency dependency);
@@ -17,5 +18,6 @@ namespace TaskMngBack.Repositories.Interfaces
         Task<bool> HasTasksForUserAsync(int userId);
         Task<bool> HasTasksForStatusAsync(Guid statusId);
         Task<int> GetCommentCountAsync(int taskId);
+        Task<List<TaskItem>> GetTasksDueSoonAsync(DateTime fromUtc, DateTime toUtc);
     }
 }

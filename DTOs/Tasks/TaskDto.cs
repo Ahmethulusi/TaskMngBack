@@ -11,10 +11,13 @@ namespace TaskMngBack.DTOs.Tasks
         public Guid StatusId { get; set; }
         public string StatusName { get; set; } = string.Empty;
         public string StatusColorKey { get; set; } = string.Empty;
+        public bool IsCompletionStatus { get; set; }
         public string Priority { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DueDate { get; set; }
+        public bool IsOverdue { get; set; }
+        public string? DueUrgency { get; set; }
 
         public int? DepartmentId { get; set; }
         public string? DepartmentName { get; set; }

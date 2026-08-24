@@ -33,6 +33,16 @@ namespace TaskMngBack.Controllers
             return Ok(project);
         }
 
+        [HttpGet("{id:guid}/activity")]
+        public async Task<ActionResult<List<ProjectActivityItemDto>>> GetActivity(Guid id)
+        {
+            var activity = await _projectService.GetActivity(
+                id,
+                GetCurrentUserId(),
+                GetCurrentUserPermissions());
+            return Ok(activity);
+        }
+
         [Authorize(Policy = "Permission:projects.manage")]
         [HttpPost]
         public async Task<ActionResult<ProjectDto>> Create(CreateProjectDto dto)

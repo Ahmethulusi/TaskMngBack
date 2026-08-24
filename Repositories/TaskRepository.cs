@@ -29,6 +29,14 @@ namespace TaskMngBack.Repositories
                 .ToListAsync();
         }
 
+        public Task<List<int>> GetTaskIdsByProjectAsync(Guid projectId)
+        {
+            return _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => t.Id)
+                .ToListAsync();
+        }
+
         public Task<TaskItem?> GetByIdAsync(int id)
         {
             return IncludeNavigations(_context.Tasks).FirstOrDefaultAsync(t => t.Id == id);
@@ -124,6 +132,19 @@ namespace TaskMngBack.Repositories
         public Task<int> GetCommentCountAsync(int taskId)
         {
             return _context.Comments.CountAsync(c => c.TaskId == taskId);
+        }
+
+        public Task<List<TaskItem>> GetTasksDueSoonAsync(DateTime fromUtc, DateTime toUtc)
+        {
+            return _context.Tasks
+                .Include(t => t.AssignedUsers)
+                .Include(t => t.CreatedByUser)
+                .Include(t => t.StatusDefinition)
+                .Where(t => t.DueDate.HasValue
+                    && t.DueDate >= fromUtc
+                    && t.DueDate <= toUtc
+                    && !t.StatusDefinition.IsCompletionStatus)
+                .ToListAsync();
         }
 
         private static IQueryable<TaskItem> IncludeNavigations(IQueryable<TaskItem> query)
