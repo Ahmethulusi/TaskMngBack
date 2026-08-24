@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TaskMngBack.Data;
@@ -11,9 +12,11 @@ using TaskMngBack.Data;
 namespace TaskMngBack.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824125556_CommentReactions")]
+    partial class CommentReactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -239,30 +242,6 @@ namespace TaskMngBack.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("TaskMngBack.Models.CommentMention", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CommentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("MentionedUserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("MentionedUserId");
-
-                    b.ToTable("CommentMentions");
                 });
 
             modelBuilder.Entity("TaskMngBack.Models.CommentReaction", b =>
@@ -895,25 +874,6 @@ namespace TaskMngBack.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TaskMngBack.Models.CommentMention", b =>
-                {
-                    b.HasOne("TaskMngBack.Models.Comment", "Comment")
-                        .WithMany("Mentions")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TaskMngBack.Models.User", "MentionedUser")
-                        .WithMany()
-                        .HasForeignKey("MentionedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("MentionedUser");
-                });
-
             modelBuilder.Entity("TaskMngBack.Models.CommentReaction", b =>
                 {
                     b.HasOne("TaskMngBack.Models.Comment", "Comment")
@@ -1073,8 +1033,6 @@ namespace TaskMngBack.Migrations
             modelBuilder.Entity("TaskMngBack.Models.Comment", b =>
                 {
                     b.Navigation("Attachments");
-
-                    b.Navigation("Mentions");
 
                     b.Navigation("Reactions");
                 });

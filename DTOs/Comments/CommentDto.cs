@@ -12,5 +12,7 @@ namespace TaskMngBack.DTOs.Comments
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<AttachmentDto> Attachments { get; set; } = new();
+        public List<ReactionSummaryDto> Reactions { get; set; } = new();
+        public List<MentionedUserDto> MentionedUsers { get; set; } = new();
     }
 }

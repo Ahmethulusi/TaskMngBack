@@ -21,6 +21,7 @@ namespace TaskMngBack.Services
         private readonly IAttachmentRepository _attachmentRepository;
         private readonly IStorageService _storageService;
         private readonly INotificationService _notificationService;
+        private readonly ISprintRepository _sprintRepository;
         private readonly ILogger<TaskService> _logger;
 
         public TaskService(
@@ -34,6 +35,7 @@ namespace TaskMngBack.Services
             IAttachmentRepository attachmentRepository,
             IStorageService storageService,
             INotificationService notificationService,
+            ISprintRepository sprintRepository,
             ILogger<TaskService> logger)
         {
             _taskRepository = taskRepository;
@@ -46,6 +48,7 @@ namespace TaskMngBack.Services
             _attachmentRepository = attachmentRepository;
             _storageService = storageService;
             _notificationService = notificationService;
+            _sprintRepository = sprintRepository;
             _logger = logger;
         }
 
@@ -88,6 +91,7 @@ namespace TaskMngBack.Services
         {
             var assignedUsers = await ResolveAssignedUsersAsync(dto.AssignedUserIds, userId, permissions);
             await ValidateParentTaskAsync(dto.ParentTaskId);
+            await ValidateSprintAssignmentAsync(dto.SprintId, dto.ProjectId);
 
             var defaultStatus = await _taskStatusRepository.GetDefaultAsync();
             if (defaultStatus is null)
@@ -105,6 +109,7 @@ namespace TaskMngBack.Services
                 DepartmentId = dto.DepartmentId,
                 ProjectId = dto.ProjectId,
                 ParentTaskId = dto.ParentTaskId,
+                SprintId = dto.SprintId,
                 CreatedByUserId = userId,
                 AssignedUsers = assignedUsers,
                 CreatedAt = DateTime.UtcNow
@@ -140,6 +145,7 @@ namespace TaskMngBack.Services
             }
 
             await ValidateParentTaskAsync(dto.ParentTaskId, task);
+            await ValidateSprintAssignmentAsync(dto.SprintId, dto.ProjectId);
 
             var oldTitle = task.Title;
             var oldDescription = task.Description;
@@ -159,6 +165,7 @@ namespace TaskMngBack.Services
             task.DepartmentId = dto.DepartmentId;
             task.ProjectId = dto.ProjectId;
             task.ParentTaskId = dto.ParentTaskId;
+            task.SprintId = dto.SprintId;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepository.UpdateAsync(task);
@@ -492,6 +499,25 @@ namespace TaskMngBack.Services
             }
         }
 
+        private async Task ValidateSprintAssignmentAsync(Guid? sprintId, Guid? projectId)
+        {
+            if (!sprintId.HasValue)
+            {
+                return;
+            }
+
+            var sprint = await _sprintRepository.GetByIdAsync(sprintId.Value);
+            if (sprint is null)
+            {
+                throw new NotFoundException($"Id'si {sprintId.Value} olan sprint bulunamadı.");
+            }
+
+            if (sprint.ProjectId != projectId)
+            {
+                throw new BadRequestException("Sprint, görevin ait olduğu projeden farklı bir projeye ait olamaz");
+            }
+        }
+
         private async Task NotifyNewlyAssignedUsersAsync(
             string taskTitle,
             int taskId,
@@ -603,6 +629,8 @@ namespace TaskMngBack.Services
                 DepartmentName = task.Department?.Name,
                 ProjectId = task.ProjectId,
                 ProjectName = task.Project?.Name,
+                SprintId = task.SprintId,
+                SprintName = task.Sprint?.Name,
                 ParentTaskId = task.ParentTaskId,
                 ParentTaskTitle = task.ParentTask?.Title,
                 Subtasks = task.Subtasks

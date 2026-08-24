@@ -22,6 +22,8 @@ namespace TaskMngBack.DTOs.Tasks
 
         public Guid? ProjectId { get; set; }
 
+        public Guid? SprintId { get; set; }
+
         public int? ParentTaskId { get; set; }
 
         public List<int> AssignedUserIds { get; set; } = new();

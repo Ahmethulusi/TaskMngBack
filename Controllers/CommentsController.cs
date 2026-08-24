@@ -47,6 +47,17 @@ namespace TaskMngBack.Controllers
             return NoContent();
         }
 
+        [HttpPost("comments/{id:guid}/reactions")]
+        public async Task<ActionResult<CommentDto>> ToggleReaction(Guid id, ToggleReactionDto dto)
+        {
+            var comment = await _commentService.ToggleReaction(
+                id,
+                dto,
+                GetCurrentUserId(),
+                GetCurrentUserPermissions());
+            return Ok(comment);
+        }
+
         private int GetCurrentUserId()
         {
             return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

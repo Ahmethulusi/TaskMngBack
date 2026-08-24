@@ -25,6 +25,9 @@ namespace TaskMngBack.DTOs.Tasks
         public Guid? ProjectId { get; set; }
         public string? ProjectName { get; set; }
 
+        public Guid? SprintId { get; set; }
+        public string? SprintName { get; set; }
+
         public int? ParentTaskId { get; set; }
         public string? ParentTaskTitle { get; set; }
         public List<SubtaskSummaryDto> Subtasks { get; set; } = new();

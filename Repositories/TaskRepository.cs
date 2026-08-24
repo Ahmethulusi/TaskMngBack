@@ -155,6 +155,7 @@ namespace TaskMngBack.Repositories
                     .ThenInclude(d => d.Users)
                 .Include(t => t.Project)
                     .ThenInclude(p => p.Members)
+                .Include(t => t.Sprint)
                 .Include(t => t.CreatedByUser)
                 .Include(t => t.AssignedUsers)
                 .Include(t => t.Labels)

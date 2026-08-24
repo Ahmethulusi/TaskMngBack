@@ -9,5 +9,7 @@ namespace TaskMngBack.DTOs.Comments
         public string Content { get; set; } = string.Empty;
 
         public List<Guid> AttachmentIds { get; set; } = new();
+
+        public List<int> MentionedUserIds { get; set; } = new();
     }
 }

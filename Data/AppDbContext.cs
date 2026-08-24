@@ -15,9 +15,12 @@ namespace TaskMngBack.Data
         public DbSet<TaskItem> Tasks => Set<TaskItem>();
         public DbSet<Project> Projects => Set<Project>();
         public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+        public DbSet<Sprint> Sprints => Set<Sprint>();
         public DbSet<TaskStatusDefinition> TaskStatuses => Set<TaskStatusDefinition>();
         public DbSet<Label> Labels => Set<Label>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<CommentReaction> CommentReactions => Set<CommentReaction>();
+        public DbSet<CommentMention> CommentMentions => Set<CommentMention>();
         public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
         public DbSet<Notification> Notifications => Set<Notification>();
@@ -82,6 +85,22 @@ namespace TaskMngBack.Data
                 .HasForeignKey(t => t.ParentTaskId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            modelBuilder.Entity<Sprint>()
+                .Property(s => s.Name)
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<Sprint>()
+                .HasOne(s => s.Project)
+                .WithMany()
+                .HasForeignKey(s => s.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskItem>()
+                .HasOne(t => t.Sprint)
+                .WithMany(s => s.Tasks)
+                .HasForeignKey(t => t.SprintId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<TaskDependency>()
                 .HasOne(d => d.Task)
                 .WithMany(t => t.Dependencies)
@@ -108,6 +127,38 @@ namespace TaskMngBack.Data
                 .HasOne(c => c.User)
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentReaction>()
+                .Property(r => r.Emoji)
+                .HasMaxLength(10);
+
+            modelBuilder.Entity<CommentReaction>()
+                .HasOne(r => r.Comment)
+                .WithMany(c => c.Reactions)
+                .HasForeignKey(r => r.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentReaction>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentReaction>()
+                .HasIndex(r => new { r.CommentId, r.UserId, r.Emoji })
+                .IsUnique();
+
+            modelBuilder.Entity<CommentMention>()
+                .HasOne(m => m.Comment)
+                .WithMany(c => c.Mentions)
+                .HasForeignKey(m => m.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentMention>()
+                .HasOne(m => m.MentionedUser)
+                .WithMany()
+                .HasForeignKey(m => m.MentionedUserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Attachment>()

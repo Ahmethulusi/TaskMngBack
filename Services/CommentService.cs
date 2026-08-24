@@ -1,3 +1,4 @@
+using TaskMngBack.Constants;
 using TaskMngBack.DTOs.Attachments;
 using TaskMngBack.DTOs.Comments;
 using TaskMngBack.Exceptions;
@@ -45,7 +46,7 @@ namespace TaskMngBack.Services
 
             foreach (var comment in comments)
             {
-                dtos.Add(await MapToDtoAsync(comment));
+                dtos.Add(await MapToDtoAsync(comment, userId));
             }
 
             return dtos;
@@ -78,9 +79,41 @@ namespace TaskMngBack.Services
                 await _attachmentRepository.ClaimForCommentAsync(dto.AttachmentIds, comment.Id, taskId, userId);
             }
 
+            var taskComments = await _commentRepository.GetByTaskIdAsync(taskId);
+            var relatedUserIds = taskComments.Select(c => c.UserId)
+                .Append(task.CreatedByUserId)
+                .Concat(task.AssignedUsers.Select(u => u.Id))
+                .ToHashSet();
+
+            var mentionedUserIds = dto.MentionedUserIds
+                .Distinct()
+                .Where(relatedUserIds.Contains)
+                .ToList();
+
+            foreach (var mentionedUserId in mentionedUserIds)
+            {
+                await _commentRepository.AddMentionAsync(new CommentMention
+                {
+                    Id = Guid.NewGuid(),
+                    CommentId = comment.Id,
+                    MentionedUserId = mentionedUserId,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                if (mentionedUserId != userId)
+                {
+                    await _notificationService.NotifyAsync(
+                        mentionedUserId,
+                        "Mention",
+                        "Bir yorumda bahsedildiniz",
+                        $"'{task.Title}' görevindeki bir yorumda sizden bahsedildi.",
+                        task.Id);
+                }
+            }
+
             var created = await GetCommentOrThrowAsync(comment.Id);
             await NotifyNewCommentAsync(task, userId);
-            return await MapToDtoAsync(created);
+            return await MapToDtoAsync(created, userId);
         }
 
         public async Task<CommentDto> UpdateAsync(Guid commentId, UpdateCommentDto dto, int userId)
@@ -98,7 +131,7 @@ namespace TaskMngBack.Services
             await _commentRepository.UpdateAsync(comment);
 
             var updated = await GetCommentOrThrowAsync(commentId);
-            return await MapToDtoAsync(updated);
+            return await MapToDtoAsync(updated, userId);
         }
 
         public async Task DeleteAsync(Guid commentId, int userId, List<string> permissions)
@@ -111,6 +144,51 @@ namespace TaskMngBack.Services
             }
 
             await _commentRepository.DeleteAsync(comment);
+        }
+
+        public async Task<CommentDto> ToggleReaction(
+            Guid commentId,
+            ToggleReactionDto dto,
+            int userId,
+            List<string> permissions)
+        {
+            if (!AllowedReactionEmojis.Values.Contains(dto.Emoji))
+            {
+                throw new BadRequestException("Geçersiz emoji");
+            }
+
+            var comment = await GetCommentOrThrowAsync(commentId);
+            var task = await GetTaskOrThrowAsync(comment.TaskId);
+
+            if (!permissions.Contains("tasks.view.all") &&
+                task.CreatedByUserId != userId &&
+                !task.AssignedUsers.Any(u => u.Id == userId) &&
+                !(task.Project?.Members.Any(m => m.UserId == userId) ?? false) &&
+                task.Department?.ManagerId != userId &&
+                !(task.Department?.Users.Any(u => u.Id == userId) ?? false))
+            {
+                throw new ForbiddenAccessException("Bu görevin yorumlarını görüntüleme yetkiniz yok.");
+            }
+
+            var existing = await _commentRepository.GetReactionAsync(commentId, userId, dto.Emoji);
+            if (existing is not null)
+            {
+                await _commentRepository.RemoveReactionAsync(existing);
+            }
+            else
+            {
+                await _commentRepository.AddReactionAsync(new CommentReaction
+                {
+                    Id = Guid.NewGuid(),
+                    CommentId = commentId,
+                    UserId = userId,
+                    Emoji = dto.Emoji,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            var updated = await GetCommentOrThrowAsync(commentId);
+            return await MapToDtoAsync(updated, userId);
         }
 
         private async Task<TaskItem> GetTaskOrThrowAsync(int taskId)
@@ -156,7 +234,7 @@ namespace TaskMngBack.Services
             return comment;
         }
 
-        private async Task<CommentDto> MapToDtoAsync(Comment comment)
+        private async Task<CommentDto> MapToDtoAsync(Comment comment, int currentUserId)
         {
             var attachments = comment.Attachments ?? new List<Attachment>();
             var attachmentDtos = new List<AttachmentDto>(attachments.Count);
@@ -176,6 +254,8 @@ namespace TaskMngBack.Services
                 });
             }
 
+            var reactions = comment.Reactions ?? new List<CommentReaction>();
+
             return new CommentDto
             {
                 Id = comment.Id,
@@ -185,7 +265,23 @@ namespace TaskMngBack.Services
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UpdatedAt = comment.UpdatedAt,
-                Attachments = attachmentDtos
+                Attachments = attachmentDtos,
+                Reactions = reactions
+                    .GroupBy(r => r.Emoji)
+                    .Select(g => new ReactionSummaryDto
+                    {
+                        Emoji = g.Key,
+                        Count = g.Count(),
+                        ReactedByMe = g.Any(r => r.UserId == currentUserId)
+                    })
+                    .ToList(),
+                MentionedUsers = (comment.Mentions ?? new List<CommentMention>())
+                    .Select(m => new MentionedUserDto
+                    {
+                        Id = m.MentionedUserId,
+                        FullName = m.MentionedUser?.FullName ?? string.Empty
+                    })
+                    .ToList()
             };
         }
     }

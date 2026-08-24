@@ -21,6 +21,9 @@ namespace TaskMngBack.Models
         public Guid? ProjectId { get; set; }
         public Project? Project { get; set; }
 
+        public Guid? SprintId { get; set; }
+        public Sprint? Sprint { get; set; }
+
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; } = null!;
 
