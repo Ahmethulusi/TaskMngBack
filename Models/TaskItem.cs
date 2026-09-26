@@ -12,9 +12,7 @@ namespace TaskMngBack.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DueDate { get; set; }
-
         public TaskStatusDefinition StatusDefinition { get; set; } = null!;
-
         public int? DepartmentId { get; set; }
         public Department? Department { get; set; }
 
@@ -24,12 +22,6 @@ namespace TaskMngBack.Models
         public Guid? SprintId { get; set; }
         public Sprint? Sprint { get; set; }
 
-        public int CreatedByUserId { get; set; }
-        public User CreatedByUser { get; set; } = null!;
-
-        public int? ParentTaskId { get; set; }
-        public TaskItem? ParentTask { get; set; }
-
         public ICollection<User> AssignedUsers { get; set; } = new List<User>();
         public ICollection<Label> Labels { get; set; } = new List<Label>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
@@ -38,5 +30,11 @@ namespace TaskMngBack.Models
         public ICollection<TaskItem> Subtasks { get; set; } = new List<TaskItem>();
         public ICollection<TaskDependency> Dependencies { get; set; } = new List<TaskDependency>();
         public ICollection<TaskDependency> Blocking { get; set; } = new List<TaskDependency>();
+
+        public int CreatedByUserId { get; set; }
+        public User CreatedByUser { get; set; } = null!;
+
+        public int? ParentTaskId { get; set; }
+        public TaskItem? ParentTask { get; set; }
     }
 }
