@@ -127,6 +127,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Açılışta bekleyen migration'ları uygular (Railway'de şemayı otomatik günceller).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 app.UseMiddleware<ExceptionMiddleware>();
 
