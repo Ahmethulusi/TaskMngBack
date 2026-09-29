@@ -10,28 +10,22 @@ namespace TaskMngBack.Services
     {
         private readonly IAttachmentRepository _attachmentRepository;
         private readonly ITaskRepository _taskRepository;
-        private readonly IProjectRepository _projectRepository;
-        private readonly IDepartmentRepository _departmentRepository;
         private readonly IStorageService _storageService;
 
         public AttachmentService(
             IAttachmentRepository attachmentRepository,
             ITaskRepository taskRepository,
-            IProjectRepository projectRepository,
-            IDepartmentRepository departmentRepository,
             IStorageService storageService)
         {
             _attachmentRepository = attachmentRepository;
             _taskRepository = taskRepository;
-            _projectRepository = projectRepository;
-            _departmentRepository = departmentRepository;
             _storageService = storageService;
         }
 
         public async Task<PresignUploadResponseDto> PresignUpload(PresignUploadRequestDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(dto.TaskId);
-            await EnsureCanViewTaskAsync(task, userId, permissions);
+            EnsureCanViewTask(task, userId, permissions);
 
             if (dto.FileSizeBytes > 10 * 1024 * 1024)
             {
@@ -51,7 +45,7 @@ namespace TaskMngBack.Services
         public async Task<AttachmentDto> Confirm(ConfirmAttachmentDto dto, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(dto.TaskId);
-            await EnsureCanViewTaskAsync(task, userId, permissions);
+            EnsureCanViewTask(task, userId, permissions);
 
             var attachment = new Attachment
             {
@@ -77,7 +71,7 @@ namespace TaskMngBack.Services
         public async Task<List<AttachmentDto>> GetForTask(int taskId, int userId, List<string> permissions)
         {
             var task = await GetTaskOrThrowAsync(taskId);
-            await EnsureCanViewTaskAsync(task, userId, permissions);
+            EnsureCanViewTask(task, userId, permissions);
 
             var attachments = await _attachmentRepository.GetByTaskIdAsync(taskId);
             var dtos = new List<AttachmentDto>(attachments.Count);
@@ -120,39 +114,16 @@ namespace TaskMngBack.Services
             return task;
         }
 
-        private async Task EnsureCanViewTaskAsync(TaskItem task, int userId, List<string> permissions)
+        private static void EnsureCanViewTask(TaskItem task, int userId, List<string> permissions)
         {
             if (permissions.Contains("tasks.view.all") ||
                 task.CreatedByUserId == userId ||
-                task.AssignedUsers.Any(u => u.Id == userId) ||
-                await IsProjectMemberAsync(task, userId) ||
-                await IsDepartmentMemberAsync(task, userId) ||
-                await IsDepartmentManagerAsync(task, userId))
+                task.AssignedUsers.Any(u => u.Id == userId))
             {
                 return;
             }
 
             throw new ForbiddenAccessException("Bu görevin ek dosyalarına erişim yetkiniz yok.");
-        }
-
-        private async Task<bool> IsProjectMemberAsync(TaskItem task, int userId)
-        {
-            var role = await _projectRepository.GetMemberRoleAsync(task.ProjectId, userId);
-            return role != null;
-        }
-
-        private async Task<bool> IsDepartmentManagerAsync(TaskItem task, int userId)
-        {
-            if (task.DepartmentId == null) return false;
-            var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
-            return department?.ManagerId == userId;
-        }
-
-        private async Task<bool> IsDepartmentMemberAsync(TaskItem task, int userId)
-        {
-            if (task.DepartmentId == null) return false;
-            var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
-            return department?.Users.Any(u => u.Id == userId) ?? false;
         }
 
         private async Task<AttachmentDto> MapToDtoAsync(Attachment attachment)

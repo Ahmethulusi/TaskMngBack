@@ -162,10 +162,7 @@ namespace TaskMngBack.Services
 
             if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
-                !task.AssignedUsers.Any(u => u.Id == userId) &&
-                !(task.Project?.Members.Any(m => m.UserId == userId) ?? false) &&
-                task.Department?.ManagerId != userId &&
-                !(task.Department?.Users.Any(u => u.Id == userId) ?? false))
+                !task.AssignedUsers.Any(u => u.Id == userId))
             {
                 throw new ForbiddenAccessException("Bu görevin yorumlarını görüntüleme yetkiniz yok.");
             }

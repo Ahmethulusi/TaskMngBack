@@ -77,6 +77,14 @@ namespace TaskMngBack.Services
             }
 
             var taskIds = await _taskRepository.GetTaskIdsByProjectAsync(projectId);
+            if (!permissions.Contains("tasks.view.all"))
+            {
+                var visibleTaskIds = (await _taskRepository.GetByUserAsync(userId))
+                    .Select(t => t.Id)
+                    .ToHashSet();
+                taskIds = taskIds.Where(visibleTaskIds.Contains).ToList();
+            }
+
             if (taskIds.Count == 0)
             {
                 return new List<ProjectActivityItemDto>();

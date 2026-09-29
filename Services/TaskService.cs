@@ -74,9 +74,7 @@ namespace TaskMngBack.Services
 
             if (!permissions.Contains("tasks.view.all") &&
                 task.CreatedByUserId != userId &&
-                !task.AssignedUsers.Any(u => u.Id == userId) &&
-                !await IsProjectMemberAsync(task, userId) &&
-                !await IsDepartmentMemberAsync(task, userId))
+                !task.AssignedUsers.Any(u => u.Id == userId))
             {
                 throw new ForbiddenAccessException("Bu görevi görüntüleme yetkiniz yok.");
             }
@@ -552,26 +550,12 @@ namespace TaskMngBack.Services
             return role == ProjectMemberRole.Owner;
         }
 
-        private async Task<bool> IsProjectMemberAsync(TaskItem task, int userId)
-        {
-            var role = await _projectRepository.GetMemberRoleAsync(task.ProjectId, userId);
-            return role != null;
-        }
-
         private async Task<bool> IsDepartmentManagerAsync(TaskItem task, int userId)
         {
             if (task.DepartmentId == null) return false;
             var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
             return department?.ManagerId == userId;
         }
-
-        private async Task<bool> IsDepartmentMemberAsync(TaskItem task, int userId)
-        {
-            if (task.DepartmentId == null) return false;
-            var department = await _departmentRepository.GetByIdAsync(task.DepartmentId.Value);
-            return department?.Users.Any(u => u.Id == userId) ?? false;
-        }
-
         private static TaskDto MapToDto(TaskItem task)
         {
             var blockedBy = task.Dependencies
